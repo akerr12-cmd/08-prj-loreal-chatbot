@@ -4,6 +4,7 @@ const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+const latestQuestion = document.getElementById("latestQuestion");
 
 const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
@@ -52,6 +53,27 @@ function addMessage(role, text) {
 
   chatWindow.appendChild(msgElement);
   chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function setLatestQuestion(text) {
+  if (!text) {
+    latestQuestion.hidden = true;
+    latestQuestion.textContent = "";
+    return;
+  }
+
+  latestQuestion.hidden = false;
+  latestQuestion.textContent = `Latest question: ${text}`;
+}
+
+function getLastUserQuestion() {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i].role === "user") {
+      return messages[i].content;
+    }
+  }
+
+  return "";
 }
 
 function addWelcomeMessage() {
@@ -199,6 +221,7 @@ function clearConversation() {
   localStorage.removeItem(STORAGE_KEY);
   messages.length = 1;
   chatWindow.innerHTML = "";
+  setLatestQuestion("");
   addWelcomeMessage();
   saveConversationState();
   userInput.focus();
@@ -232,6 +255,8 @@ if (!hasLoadedHistory) {
   addWelcomeMessage();
   saveConversationState();
 }
+
+setLatestQuestion(getLastUserQuestion());
 
 updatePlaceholderText();
 
@@ -270,6 +295,7 @@ chatForm.addEventListener("submit", async (e) => {
 
   addMessage("user", userText);
   userInput.value = "";
+  setLatestQuestion(userText);
 
   updateKnownUserName(userText);
   messages.push({ role: "user", content: userText });
