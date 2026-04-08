@@ -51,14 +51,15 @@
         <div id="chatWindow" class="chat-window"></div>
 
         <form id="chatForm" class="chat-form">
-          <input
+          <textarea
             id="userInput"
+            class="chat-input"
             name="userInput"
-            type="text"
             placeholder="Ask me about products or routines…"
             autocomplete="off"
+            rows="1"
             required
-          />
+          ></textarea>
           <button type="submit" id="sendBtn">
             <span class="material-icons">send</span>
           </button>

@@ -198,20 +198,23 @@ input {
   margin-top: 1rem;
 }
 
-.chat-form input {
+.chat-form .chat-input {
   width: 100%;
   padding: 0.95rem 1rem;
   border-radius: 0.875rem;
   border: 1px solid rgba(0, 0, 0, 0.14);
   background: rgba(255, 255, 255, 0.82);
   color: #1a1a1a;
+  min-height: 3rem;
+  max-height: 8rem;
+  resize: vertical;
 }
 
-.chat-form input::placeholder {
+.chat-form .chat-input::placeholder {
   color: #7a7a7a;
 }
 
-.chat-form input:focus {
+.chat-form .chat-input:focus {
   outline: 2px solid #e7d9ff;
   outline-offset: 2px;
 }
@@ -295,9 +298,10 @@ input {
     margin-top: 0.85rem;
   }
 
-  .chat-form input {
+  .chat-form .chat-input {
     padding: 0.8rem 0.9rem;
     font-size: 0.95rem;
+    min-height: 2.75rem;
   }
 
   .chat-form button {

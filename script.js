@@ -6,15 +6,16 @@ const chatWindow = document.getElementById("chatWindow");
 const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
 
-// In secrets.js, set: const OPENAI_API_URL = "https://your-worker-url.workers.dev";
-const API_URL = typeof OPENAI_API_URL !== "undefined" ? OPENAI_API_URL : "";
+// Set your deployed Cloudflare Worker URL in secrets.js.
+// const OPENAI_API_URL = "https://your-worker-url.workers.dev";
+const WORKER_URL = typeof OPENAI_API_URL !== "undefined" ? OPENAI_API_URL : "";
 
 // Store the full chat history so each request has context.
 const messages = [
   {
     role: "system",
     content:
-      "You are a L'Oreal Beauty Advisor. Only answer questions about L'Oreal products, beauty routines, ingredients, and product recommendations. If a question is outside this scope, politely decline and ask the user to ask a L'Oreal-related beauty question. Keep answers concise, practical, and beginner-friendly.",
+      "You are a L'Oreal Beauty Advisor chatbot. You may only answer questions about L'Oreal products, beauty routines, ingredients, skin care, hair care, makeup, fragrance, and product recommendations. If the user asks about any unrelated topic, politely refuse in 1 short sentence, then redirect with: 'I can help with L'Oreal products, routines, and beauty recommendations.' Keep all responses concise, practical, and beginner-friendly.",
   },
 ];
 
@@ -44,7 +45,7 @@ function addMessage(role, text) {
 }
 
 async function getAssistantReply() {
-  const response = await fetch(API_URL, {
+  const response = await fetch(WORKER_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,11 +70,19 @@ updatePlaceholderText();
 
 window.addEventListener("resize", updatePlaceholderText);
 
+// Enter sends the message. Shift+Enter inserts a new line.
+userInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    chatForm.requestSubmit();
+  }
+});
+
 /* Handle form submit */
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!API_URL) {
+  if (!WORKER_URL) {
     addMessage("assistant", "Please add OPENAI_API_URL in secrets.js first.");
     return;
   }
