@@ -6,6 +6,18 @@ const chatWindow = document.getElementById("chatWindow");
 const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
 
+// In secrets.js, set: const OPENAI_API_URL = "https://your-worker-url.workers.dev";
+const API_URL = typeof OPENAI_API_URL !== "undefined" ? OPENAI_API_URL : "";
+
+// Store the full chat history so each request has context.
+const messages = [
+  {
+    role: "system",
+    content:
+      "You are a friendly L'Oreal beauty advisor. Give short, helpful answers with practical routine suggestions.",
+  },
+];
+
 function updatePlaceholderText() {
   if (window.innerWidth <= 399) {
     userInput.placeholder = mobilePlaceholder;
@@ -15,19 +27,81 @@ function updatePlaceholderText() {
   userInput.placeholder = desktopPlaceholder;
 }
 
+function addMessage(role, text) {
+  const msgElement = document.createElement("div");
+  msgElement.classList.add("msg");
+
+  if (role === "user") {
+    msgElement.classList.add("user");
+    msgElement.textContent = `You: ${text}`;
+  } else {
+    msgElement.classList.add("ai");
+    msgElement.textContent = `L'Oréal Advisor: ${text}`;
+  }
+
+  chatWindow.appendChild(msgElement);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+async function getAssistantReply() {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: messages,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Request failed. Check your API URL and try again.");
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
 // Set initial message
-chatWindow.textContent = "👋 Hello! How can I help you today?";
+addMessage("assistant", "Hello. How can I help you with your beauty routine today?");
 updatePlaceholderText();
 
 window.addEventListener("resize", updatePlaceholderText);
 
 /* Handle form submit */
-chatForm.addEventListener("submit", (e) => {
+chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // When using Cloudflare, you'll need to POST a `messages` array in the body,
-  // and handle the response using: data.choices[0].message.content
+  if (!API_URL) {
+    addMessage("assistant", "Please add OPENAI_API_URL in secrets.js first.");
+    return;
+  }
 
-  // Show message
-  chatWindow.innerHTML = "Connect to the OpenAI API for a response!";
+  const userText = userInput.value.trim();
+
+  if (!userText) {
+    return;
+  }
+
+  addMessage("user", userText);
+  userInput.value = "";
+
+  messages.push({ role: "user", content: userText });
+
+  addMessage("assistant", "Thinking...");
+
+  try {
+    const aiText = await getAssistantReply();
+
+    // Remove "Thinking..." and replace with actual assistant response.
+    chatWindow.lastChild.remove();
+    addMessage("assistant", aiText);
+    messages.push({ role: "assistant", content: aiText });
+  } catch (error) {
+    chatWindow.lastChild.remove();
+    addMessage("assistant", `Sorry, something went wrong. ${error.message}`);
+  }
+
+  userInput.focus();
 });
