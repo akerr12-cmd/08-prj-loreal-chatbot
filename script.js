@@ -89,57 +89,102 @@ function renderDiscoverSuggestedProducts(products) {
     return;
   }
 
-  if (!products.length) {
+  const linkedProducts = products.filter((product) => product.url);
+
+  if (!linkedProducts.length) {
     if (!latestSuggestedProducts.length) {
       setDiscoverSuggestionMessage("No products suggested yet. Ask about a routine or concern.");
     }
     return;
   }
 
-  latestSuggestedProducts = products.slice();
+  latestSuggestedProducts = linkedProducts.slice();
   discoverSuggestedList.innerHTML = "";
 
-  for (let i = 0; i < products.length; i += 1) {
-    const product = products[i];
+  for (let i = 0; i < linkedProducts.length; i += 1) {
+    const product = linkedProducts[i];
     const item = document.createElement("li");
 
-    if (product.url) {
-      const link = document.createElement("a");
-      link.href = product.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = product.name;
-      item.appendChild(link);
-    } else {
-      item.textContent = product.name;
-    }
+    const link = document.createElement("a");
+    link.href = product.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = product.name;
+    item.appendChild(link);
 
     discoverSuggestedList.appendChild(item);
   }
 }
 
-function parseSuggestedProducts(text) {
-  const normalizedText = text.replace(/\r\n/g, "\n");
-  const sectionRegex = /(?:^|\n)(?:#{1,6}\s*)?(?:suggested|recommended)\s+products?\s*:?\s*\n([\s\S]*)/i;
-  const match = normalizedText.match(sectionRegex);
-
-  if (!match) {
-    return {
-      displayText: text.trim(),
-      products: [],
-    };
+function isLikelyLorealProductUrl(url) {
+  if (!url) {
+    return false;
   }
 
-  const headingIndex = normalizedText.indexOf(match[0]);
-  const displayText = normalizedText.slice(0, headingIndex).trim();
-  const section = match[1];
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.toLowerCase().includes("loreal");
+  } catch (error) {
+    return false;
+  }
+}
+
+function cleanSuggestedProductName(rawName) {
+  if (!rawName) {
+    return "";
+  }
+
+  let name = rawName
+    .replace(/\*\*/g, "")
+    .replace(/^['"`\-\s]+|['"`\s]+$/g, "")
+    .trim();
+
+  if (name.includes(" - ")) {
+    name = name.split(" - ")[0].trim();
+  }
+
+  if (name.includes(" — ")) {
+    name = name.split(" — ")[0].trim();
+  }
+
+  if (name.includes(" – ")) {
+    name = name.split(" – ")[0].trim();
+  }
+
+  name = name.replace(/\[[^\]]+\]\s*$/g, "").trim();
+
+  const wrappedBracketMatch = name.match(/^\[([^\]]+)\]$/);
+  if (wrappedBracketMatch && wrappedBracketMatch[1]) {
+    name = wrappedBracketMatch[1].trim();
+  }
+
+  return name.replace(/\s{2,}/g, " ").trim();
+}
+
+function parseSuggestedProducts(text) {
+  const normalizedText = text.replace(/\r\n/g, "\n");
+  const sectionRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
+  const match = normalizedText.match(sectionRegex);
+
+  const headingIndex = match ? normalizedText.indexOf(match[0]) : -1;
+  const displayTextBeforeProducts = headingIndex >= 0 ? normalizedText.slice(0, headingIndex).trim() : normalizedText.trim();
+  const section = match ? match[1] : normalizedText;
   const lines = section.split("\n");
   const products = [];
+  const listItemRegex = /^(?:[\-•*]|\d+\.)\s+/;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i].trim();
 
+    if (!line && products.length > 0) {
+      break;
+    }
+
     if (!line) {
+      continue;
+    }
+
+    if (products.length > 0 && !listItemRegex.test(line)) {
       break;
     }
 
@@ -163,33 +208,40 @@ function parseSuggestedProducts(text) {
           ? plainUrlMatch[2].trim()
           : "";
 
-      const cleanedName = name.replace(/^["'`\-\s]+|["'`\s]+$/g, "");
+      const cleanedName = cleanSuggestedProductName(name);
 
-      if (cleanedName) {
+      if (cleanedName && url && isLikelyLorealProductUrl(url)) {
         products.push({ name: cleanedName, url });
     }
   }
 
     if (!products.length) {
-      const fallbackListRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+([^\n|]+?)\s*(?:\|\s*(https?:\/\/\S+)|\((https?:\/\/\S+)\)|\s+(https?:\/\/\S+))?\s*$/gim;
+      const fallbackListRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+([^\n|]+?)\s*(?:\|\s*(https?:\/\/\S+)|\((https?:\/\/\S+)\)|\s+(https?:\/\/\S+))\s*$/gim;
       let fallbackMatch;
 
       while ((fallbackMatch = fallbackListRegex.exec(normalizedText)) !== null) {
-        const fallbackName = (fallbackMatch[1] || "").trim();
+        const fallbackName = cleanSuggestedProductName((fallbackMatch[1] || "").trim());
         const fallbackUrl = (fallbackMatch[2] || fallbackMatch[3] || fallbackMatch[4] || "").trim();
 
-        if (fallbackName) {
+        if (fallbackName && fallbackUrl && isLikelyLorealProductUrl(fallbackUrl)) {
           products.push({ name: fallbackName, url: fallbackUrl });
         }
 
         if (products.length >= 3) {
           break;
-        }
       }
     }
+    }
+
+    const strippedDisplayText = normalizedText
+      .split("\n")
+      .filter((line) => !/^(?:\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\b.*)$/i.test(line))
+      .filter((line) => !/^(?:\s*(?:[\-•*]|\d+\.)\s+.*(?:https?:\/\/\S+).*)$/i.test(line))
+      .join("\n")
+      .trim();
 
   return {
-    displayText: displayText || text.trim(),
+      displayText: (displayTextBeforeProducts || strippedDisplayText || text).trim(),
     products: products.slice(0, 3),
   };
 }
