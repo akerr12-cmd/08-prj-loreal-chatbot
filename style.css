@@ -548,6 +548,16 @@ input {
   color: var(--brand-black);
 }
 
+.suggested-product-link {
+  color: var(--brand-black);
+  text-decoration: none;
+}
+
+.suggested-product-link:hover {
+  color: var(--brand-gold);
+  text-decoration: underline;
+}
+
 .msg {
   max-width: 85%;
   margin-bottom: 0;

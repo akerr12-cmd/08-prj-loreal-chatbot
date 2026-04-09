@@ -111,8 +111,16 @@ function renderSuggestedProducts(products) {
     const card = document.createElement("div");
     card.classList.add("suggested-product-card");
 
-    const name = document.createElement("div");
+    const name = document.createElement(product.url ? "a" : "div");
     name.classList.add("suggested-product-name");
+
+    if (product.url) {
+      name.classList.add("suggested-product-link");
+      name.href = product.url;
+      name.target = "_blank";
+      name.rel = "noopener noreferrer";
+    }
+
     name.textContent = product.name;
     card.appendChild(name);
 
