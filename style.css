@@ -157,38 +157,36 @@ input {
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.05);
 }
 
-.beauty-palette {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+.hero-fact {
   margin-top: 1.15rem;
+  padding: 1rem 1rem 1.05rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(200, 155, 60, 0.2);
+  background:
+    radial-gradient(circle at top right, rgba(217, 91, 125, 0.14) 0%, rgba(217, 91, 125, 0) 42%),
+    linear-gradient(180deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 242, 222, 0.96) 100%);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
 }
 
-.shade-card {
-  position: relative;
-  min-height: 5.25rem;
-  padding: 0.75rem;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-}
-
-.shade-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 55%);
-}
-
-.shade-card span {
-  position: relative;
-  z-index: 1;
-  display: inline-block;
-  color: #ffffff;
+.hero-fact-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.7rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: #1a1a1a;
+  color: #fff;
   font-family: "Halesworth eText", "montserrat", "helvetica-lt-pro";
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.hero-fact-text {
+  margin-top: 0.7rem;
+  font-size: 0.96rem;
+  line-height: 1.6;
+  color: #3d3d3d;
 }
 
 .shade-rose {
@@ -258,6 +256,10 @@ input {
 .chatbox {
   order: 2;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 9rem);
+  overflow: hidden;
 }
 
 .chat-panel-header {
@@ -324,10 +326,12 @@ input {
 }
 
 .chat-window {
+  flex: 1 1 auto;
   min-height: 18rem;
-  max-height: 52vh;
+  max-height: none;
   padding: 1rem;
   overflow-y: auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -345,9 +349,9 @@ input {
   margin-top: 0.85rem;
   padding: 0.9rem;
   border-radius: 1rem;
-  border: 1px solid rgba(200, 155, 60, 0.16);
-  background: linear-gradient(180deg, rgba(255, 250, 243, 0.96) 0%, rgba(255, 242, 222, 0.94) 100%);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(200, 155, 60, 0.22);
+  background: linear-gradient(180deg, rgba(255, 250, 243, 0.98) 0%, rgba(255, 242, 222, 0.96) 100%);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.08);
 }
 
 .suggested-products-header {
@@ -375,13 +379,33 @@ input {
 
 .suggested-product-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.8rem 0.85rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  position: relative;
+  padding: 0.9rem 0.9rem 0.9rem 1rem;
   border-radius: 0.85rem;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(200, 155, 60, 0.18);
+  overflow: hidden;
+}
+
+.suggested-product-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.35rem;
+  background: linear-gradient(180deg, #d95b7d 0%, #c89b3c 100%);
+}
+
+.suggested-product-card[data-has-link="true"] {
+  box-shadow: inset 0 0 0 1px rgba(200, 155, 60, 0.08);
+}
+
+.suggested-product-meta {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: #6a6a6a;
 }
 
 .suggested-product-name {
@@ -391,7 +415,7 @@ input {
 }
 
 .suggested-product-link {
-  flex: 0 0 auto;
+  align-self: flex-start;
   padding: 0.45rem 0.7rem;
   border-radius: 999px;
   background: #1a1a1a;
@@ -570,9 +594,12 @@ input {
 }
 
 @media (max-width: 399px) {
+  .chatbox {
+    max-height: calc(100vh - 7.5rem);
+  }
+
   .chat-window {
     min-height: 14rem;
-    max-height: 46vh;
   }
 
   .chat-form {
@@ -615,9 +642,12 @@ input {
     padding: 1.25rem;
   }
 
+  .chatbox {
+    max-height: calc(100vh - 8.5rem);
+  }
+
   .chat-window {
     min-height: 20rem;
-    max-height: 56vh;
   }
 
   .chat-form {
@@ -687,9 +717,12 @@ input {
     border-radius: 1.5rem;
   }
 
+  .chatbox {
+    max-height: calc(100vh - 9.5rem);
+  }
+
   .chat-window {
     min-height: 24rem;
-    max-height: 60vh;
     padding: 1.1rem;
   }
 
@@ -702,6 +735,10 @@ input {
   .page-wrapper {
     width: min(100% - 3rem, 70rem);
     padding-bottom: 2rem;
+  }
+
+  .chatbox {
+    max-height: calc(100vh - 10rem);
   }
 
   .split-layout {

@@ -12,6 +12,14 @@ const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
 const STORAGE_KEY = "loreal-chat-state";
 const MAX_HISTORY_MESSAGES = 20;
+const PRODUCT_FOLLOW_UP = "Would you like to know where you can find these suggested products based on your location?";
+const BEAUTY_FACTS = [
+  "L'Oréal launched in 1909 and grew into one of the world's best-known beauty companies.",
+  "A simple routine usually works best: cleanse, treat, moisturize, and protect with SPF during the day.",
+  "Hair and skin care products often work best when chosen for your specific concern, not just your category.",
+  "Layering lightweight products first and richer products last helps a routine feel more balanced.",
+  "Consistent daily care usually matters more than using a lot of products at once.",
+];
 
 // Deployed Cloudflare Worker endpoint.
 const WORKER_URL = "https://lorealchatbot-worker.akerr12.workers.dev/";
@@ -21,7 +29,7 @@ const userProfile = {
 };
 
 const SYSTEM_PROMPT =
-  "You are a L'Oreal Beauty Advisor chatbot. You may only answer questions about L'Oreal products, beauty routines, ingredients, skin care, hair care, makeup, fragrance, and product recommendations. If the user asks about any unrelated topic, politely refuse in 1 short sentence, then redirect with: 'I can help with L'Oreal products, routines, and beauty recommendations.' When you recommend products, include a short section labeled 'Suggested products:' with up to three items, one per line. If you know a verified official URL for a suggested product, include it after the product name using a pipe separator. Keep all responses concise, practical, and beginner-friendly.";
+  "You are a L'Oreal Beauty Advisor chatbot. You may only answer questions about L'Oreal products, beauty routines, ingredients, skin care, hair care, makeup, fragrance, and product recommendations. If the user asks about any unrelated topic, politely refuse in 1 short sentence, then redirect with: 'I can help with L'Oreal products, routines, and beauty recommendations.' When you recommend products, include an exact section labeled 'Suggested products:' followed by up to three bullet lines in this exact format: '- Product name' or '- Product name | https://verified-official-url'. Do not use any other heading for product suggestions. After listing suggested products, ask one short follow-up question about whether the user would like help finding them locally or by location. Keep all responses concise, practical, and beginner-friendly.";
 
 // Store the full chat history so each request has context.
 const messages = [
@@ -38,6 +46,17 @@ function updatePlaceholderText() {
   }
 
   userInput.placeholder = desktopPlaceholder;
+}
+
+function setRandomBeautyFact() {
+  const factElement = document.getElementById("beautyFactText");
+
+  if (!factElement || BEAUTY_FACTS.length === 0) {
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * BEAUTY_FACTS.length);
+  factElement.textContent = BEAUTY_FACTS[randomIndex];
 }
 
 function addMessage(role, text) {
@@ -73,11 +92,17 @@ function renderSuggestedProducts(products) {
     const product = products[i];
     const card = document.createElement("div");
     card.classList.add("suggested-product-card");
+    card.dataset.hasLink = product.url ? "true" : "false";
 
     const name = document.createElement("div");
     name.classList.add("suggested-product-name");
     name.textContent = product.name;
     card.appendChild(name);
+
+    const meta = document.createElement("div");
+    meta.classList.add("suggested-product-meta");
+    meta.textContent = product.url ? "Official link available" : "Suggested by the advisor";
+    card.appendChild(meta);
 
     if (product.url) {
       const link = document.createElement("a");
@@ -85,7 +110,7 @@ function renderSuggestedProducts(products) {
       link.href = product.url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "View";
+      link.textContent = "Open official link";
       card.appendChild(link);
     }
 
@@ -97,7 +122,7 @@ function renderSuggestedProducts(products) {
 
 function parseSuggestedProducts(text) {
   const normalizedText = text.replace(/\r\n/g, "\n");
-  const match = normalizedText.match(/(?:^|\n)(?:Suggested products|Recommended products|Product suggestions)\s*:\s*\n([\s\S]*)/i);
+  const match = normalizedText.match(/(?:^|\n)Suggested products:\s*\n([\s\S]*)/);
 
   if (!match) {
     return {
@@ -119,14 +144,14 @@ function parseSuggestedProducts(text) {
       break;
     }
 
-    if (/^[A-Z][A-Za-z ]{0,40}:$/.test(line)) {
+    const bulletMatch = line.match(/^[\-•*]\s+([^|]+?)(?:\s*\|\s*(https?:\/\/\S+))?$/);
+
+    if (!bulletMatch) {
       break;
     }
 
-    const cleaned = line.replace(/^[\-*•]\s*/, "");
-    const parts = cleaned.split(/\s*[|—–]\s*/);
-    const name = parts[0] ? parts[0].trim() : "";
-    const url = parts[1] && /^https?:\/\//.test(parts[1].trim()) ? parts[1].trim() : "";
+    const name = bulletMatch[1].trim();
+    const url = bulletMatch[2] ? bulletMatch[2].trim() : "";
 
     if (name) {
       products.push({ name, url });
@@ -139,10 +164,24 @@ function parseSuggestedProducts(text) {
   };
 }
 
+function shouldAskLocationFollowUp(parsedResponse) {
+  if (parsedResponse.products.length > 0) {
+    return true;
+  }
+
+  return /\b(store|stores|location|locations|nearby|near you|find them|where to buy|available at|retailer|retailers)\b/i.test(parsedResponse.displayText);
+}
+
 function addAssistantResponse(text) {
   const parsedResponse = parseSuggestedProducts(text);
   renderSuggestedProducts(parsedResponse.products);
   addMessage("assistant", parsedResponse.displayText);
+
+  if (shouldAskLocationFollowUp(parsedResponse)) {
+    addMessage("assistant", PRODUCT_FOLLOW_UP);
+  }
+
+  return parsedResponse;
 }
 
 function setLatestQuestion(text) {
@@ -235,7 +274,11 @@ function loadConversationState() {
 
         messages.push({ role: msg.role, content: msg.content });
         if (msg.role === "assistant") {
-          addAssistantResponse(msg.content);
+          const parsedResponse = addAssistantResponse(msg.content);
+
+          if (parsedResponse.products.length > 0) {
+            messages.push({ role: "assistant", content: PRODUCT_FOLLOW_UP });
+          }
         } else {
           addMessage(msg.role, msg.content);
         }
@@ -352,6 +395,7 @@ if (!hasLoadedHistory) {
 }
 
 setLatestQuestion(getLastUserQuestion());
+setRandomBeautyFact();
 
 updatePlaceholderText();
 
@@ -391,6 +435,7 @@ chatForm.addEventListener("submit", async (e) => {
   addMessage("user", userText);
   userInput.value = "";
   setLatestQuestion(userText);
+  hideSuggestedProducts();
 
   updateKnownUserName(userText);
   messages.push({ role: "user", content: userText });
@@ -401,11 +446,17 @@ chatForm.addEventListener("submit", async (e) => {
   try {
     const requestMessages = buildMessagesForRequest();
     const aiText = await getAssistantReply(requestMessages);
+    const parsedResponse = parseSuggestedProducts(aiText);
 
     // Remove "Thinking..." and replace with actual assistant response.
     chatWindow.lastChild.remove();
     addAssistantResponse(aiText);
     messages.push({ role: "assistant", content: aiText });
+
+    if (parsedResponse.products.length > 0) {
+      messages.push({ role: "assistant", content: PRODUCT_FOLLOW_UP });
+    }
+
     saveConversationState();
   } catch (error) {
     chatWindow.lastChild.remove();
