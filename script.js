@@ -30,7 +30,7 @@ const userProfile = {
 };
 
 const SYSTEM_PROMPT =
-  "You are a L'Oreal Beauty Advisor chatbot. You may only answer questions about L'Oreal products, beauty routines, ingredients, skin care, hair care, makeup, fragrance, and product recommendations. If the user asks about any unrelated topic, politely refuse in 1 short sentence, then redirect with: 'I can help with L'Oreal products, routines, and beauty recommendations.' When you recommend products, include an exact section labeled 'Suggested products:' followed by up to three bullet lines in this exact format: '- Product name' or '- Product name | https://verified-official-url'. Do not use any other heading for product suggestions. After listing suggested products, ask one short follow-up question about whether the user would like help finding them locally or by location. Keep all responses concise, practical, and beginner-friendly.";
+  "You are the L'Oréal Beauty Advisor AI.\n\nYour purpose is to help users explore L'Oréal beauty topics, understand ingredients, and build personalized beauty routines. You must stay strictly within the L'Oréal beauty and cosmetic science domain at all times.\n\nALLOWED TOPICS\nYou may answer questions related to:\n- L'Oréal products and sub-brands\n- L'Oréal Paris, Lancôme, Kiehl's, La Roche-Posay, Garnier, and other L'Oréal brands\n- Beauty routines and techniques, including skincare layering, haircare rituals, and makeup application\n- The science of beauty, including cosmetic chemistry, formulation principles, ingredient interactions, and how research drives innovation at L'Oréal\n- Ingredient education, including what ingredients do, how they work, and why they are used\n- Skin, hair, and makeup concerns when they relate to beauty, cosmetic science, or choosing products\n- Beauty innovation and sustainability initiatives at L'Oréal\n- Shade matching, undertones, textures, and finishes\n- Brand and product information, including categories, benefits, usage, and comparisons within L'Oréal\n- Beauty education and empowerment, helping users understand their skin and hair scientifically and make informed beauty choices\n\nIf a question is unrelated to beauty, science, or L'Oréal, politely redirect.\n\nFORBIDDEN TOPICS\nYou must not answer questions about:\n- Non-L'Oréal brands or products\n- Medical advice, diagnoses, or treatment\n- Health conditions unrelated to beauty or cosmetic science\n- Politics, news, history, or general knowledge\n- Emotional support, personal opinions, or unrelated conversation\n- Anything outside beauty, skincare, haircare, makeup, or cosmetic science\n\nIf asked, respond with: 'I can help with beauty science and L'Oréal expertise. What beauty concern or topic would you like to explore?'\n\nVOICE AND STYLE\nYour tone must be warm, calm, and confident. Be ingredient-savvy and lightly scientific. Keep the tone editorial and concise. Be supportive and empowering. Never sound salesy, robotic, or overly casual. Use short, clear sentences. Explain why a product fits the user's needs. Ask clarifying questions when needed.\n\nSAFETY AND ACCURACY\n- Never invent products that do not exist.\n- Never recommend non-L'Oréal products.\n- Never make medical claims.\n- Never give instructions that replace professional care.\n- If unsure whether a product exists, ask for clarification or decline.\n\nOUT-OF-SCOPE HANDLING\nIf the user asks anything outside your domain, respond with: 'I'm here to help with beauty science and L'Oréal expertise. Tell me what you'd like to explore.'\n\nDo not answer the off-topic question. Do not break character.\n\nPRODUCT SUGGESTIONS\nWhen a user asks a general beauty, science, or routine question, give a helpful answer and include a short 'Suggested products:' section with one to three relevant L'Oréal products when appropriate. If a product is not clearly relevant, do not invent one.\n\nCORE BEHAVIOR\n- Stay strictly within L'Oréal beauty topics and cosmetic science.\n- Be warm, expert, and editorial.\n- Provide ingredient-aware explanations.\n- Offer relevant L'Oréal product suggestions when helpful.\n- Ask clarifying questions when needed.\n- Redirect anything out of scope.";
 
 // Store the full chat history so each request has context.
 const messages = [
@@ -93,7 +93,6 @@ function renderSuggestedProducts(products) {
     const product = products[i];
     const card = document.createElement("div");
     card.classList.add("suggested-product-card");
-    card.dataset.hasLink = product.url ? "true" : "false";
 
     const name = document.createElement("div");
     name.classList.add("suggested-product-name");
@@ -102,18 +101,8 @@ function renderSuggestedProducts(products) {
 
     const meta = document.createElement("div");
     meta.classList.add("suggested-product-meta");
-    meta.textContent = product.url ? "Official link available" : "Suggested by the advisor";
+    meta.textContent = "Suggested by the advisor";
     card.appendChild(meta);
-
-    if (product.url) {
-      const link = document.createElement("a");
-      link.classList.add("suggested-product-link");
-      link.href = product.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = "Open official link";
-      card.appendChild(link);
-    }
 
     suggestedProductsList.appendChild(card);
   }
@@ -173,16 +162,107 @@ function shouldAskLocationFollowUp(parsedResponse) {
   return /\b(store|stores|location|locations|nearby|near you|find them|where to buy|available at|retailer|retailers)\b/i.test(parsedResponse.displayText);
 }
 
-function addAssistantResponse(text) {
+function getContextualFollowUpQuestion(userText, aiText, parsedResponse) {
+  if (shouldAskLocationFollowUp(parsedResponse)) {
+    return PRODUCT_FOLLOW_UP;
+  }
+
+  const combinedText = `${userText} ${aiText}`.toLowerCase();
+
+  if (/cleanser|face wash|cleanse|double cleanse|micellar/.test(combinedText)) {
+    return "What is your skin type, and are you looking for a gentle, brightening, or acne-focused cleanser?";
+  }
+
+  if (/serum|essence|treatment|booster|ampoule|spot treatment/.test(combinedText)) {
+    return "Are you looking for a brightening, hydrating, smoothing, or anti-aging treatment?";
+  }
+
+  if (/moisturizer|cream|lotion|gel cream|hydrator|moisturizing/.test(combinedText)) {
+    return "Do you want a lightweight gel, a richer cream, or something barrier-supporting?";
+  }
+
+  if (/sunscreen|spf|sun protection|uv|broad spectrum/.test(combinedText)) {
+    return "Do you need a daily face SPF, a body sunscreen, or a formula that layers well under makeup?";
+  }
+
+  if (/mask|sheet mask|sleeping mask|overnight mask/.test(combinedText)) {
+    return "Would you like a mask for hydration, repair, or glow?";
+  }
+
+  if (/toner|exfoliant|exfoliating|acid|bha|aha|lactic|glycolic|salicylic/.test(combinedText)) {
+    return "Are you looking for gentle exfoliation, pore care, or texture smoothing?";
+  }
+
+  if (/\bhair\b|hair care|shampoo|conditioner|mask|scalp|leave-in|heat protect|frizz|split ends|curl|curly|straight|wavy|damage|breakage|volume|shine|thinning/.test(combinedText)) {
+    return "What is your hair type, and do you want help with cleansing, conditioning, repair, styling, or scalp care?";
+  }
+
+  if (/foundation|concealer|blush|bronzer|mascara|lipstick|lip gloss|eyeliner|primer|setting spray|powder|base|coverage|glow|matte|natural/.test(combinedText)) {
+    return "What makeup step or product family are you focusing on, and what finish do you want?";
+  }
+
+  if (/\bfragrance\b|perfume|scent|smell|notes|cologne|body mist/.test(combinedText)) {
+    return "Do you want to explore fresh, floral, warm, sweet, or bold scent families?";
+  }
+
+  if (/ingredient|ingredients|safe|safety|irritation|allergy|sensitive|paraben|sulfate|fragrance-free|acid|retinol|niacinamide|ceramide|hyaluronic|peptide|vitamin c/.test(combinedText)) {
+    return "Do you want to learn what an ingredient does, how it works, or which formula it fits best in?";
+  }
+
+  if (/innovation|sustainability|research|science|scientific|chemistry|formulation|formulas|formulation principles|cosmetic science/.test(combinedText)) {
+    return "Would you like to focus on ingredients, formulation, or L'Oréal innovation and sustainability?";
+  }
+
+  if (/shade|undertone|undertones|texture|textures|finish|finishes|match|matching|tone|color theory/.test(combinedText)) {
+    return "What shade, undertone, texture, or finish are you trying to match?";
+  }
+
+  if (/routine|step|steps|regimen|morning|night|day|nighttime|layering|ritual|application order/.test(combinedText)) {
+    return "Are you building a morning routine, nighttime routine, or full routine, and for which skin or hair concern?";
+  }
+
+  if (/compare|comparison|versus|\bvs\b/.test(combinedText)) {
+    return "Which L'Oréal products or sub-brands do you want to compare, and what matters most to you?";
+  }
+
+  if (/sub-brand|sub-brands|brand|brands|category|categories|benefit|benefits|loreal paris|lancome|kiehl's|kiehls|la roche-posay|garnier|loreal/.test(combinedText)) {
+    return "Which L'Oréal sub-brand or product family would you like to explore?";
+  }
+
+  if (/beauty education|education|empowerment|understand|learn/.test(combinedText)) {
+    return "Would you like a quick explanation, a science breakdown, or a product suggestion?";
+  }
+
+  if (/product|products|recommend|recommendation|suggest|routine/.test(combinedText)) {
+    return "Which product family are you most interested in: cleanser, serum, moisturizer, SPF, shampoo, conditioner, foundation, mascara, or fragrance?";
+  }
+
+  return "";
+}
+
+function addAssistantResponse(text, allowFollowUp = true, followUpQuestion = "") {
   const parsedResponse = parseSuggestedProducts(text);
   renderSuggestedProducts(parsedResponse.products);
   addMessage("assistant", parsedResponse.displayText);
 
-  if (shouldAskLocationFollowUp(parsedResponse)) {
-    addMessage("assistant", PRODUCT_FOLLOW_UP);
+  let nextFollowUp = "";
+
+  if (allowFollowUp) {
+    nextFollowUp = followUpQuestion || "";
+
+    if (!nextFollowUp) {
+      nextFollowUp = getContextualFollowUpQuestion(text, parsedResponse.displayText, parsedResponse);
+    }
+
+    if (nextFollowUp) {
+      addMessage("assistant", nextFollowUp);
+    }
   }
 
-  return parsedResponse;
+  return {
+    parsedResponse,
+    followUpQuestion: nextFollowUp,
+  };
 }
 
 function setLatestQuestion(text) {
@@ -209,7 +289,7 @@ function getLastUserQuestion() {
 function addWelcomeMessage() {
   const welcomeText = "Hello. How can I help you with your beauty routine today?";
   messages.push({ role: "assistant", content: welcomeText });
-  addAssistantResponse(welcomeText);
+  addAssistantResponse(welcomeText, false);
 }
 
 function capitalizeName(name) {
@@ -275,11 +355,7 @@ function loadConversationState() {
 
         messages.push({ role: msg.role, content: msg.content });
         if (msg.role === "assistant") {
-          const parsedResponse = addAssistantResponse(msg.content);
-
-          if (parsedResponse.products.length > 0) {
-            messages.push({ role: "assistant", content: PRODUCT_FOLLOW_UP });
-          }
+          addAssistantResponse(msg.content, false);
         } else {
           addMessage(msg.role, msg.content);
         }
@@ -448,19 +524,24 @@ chatForm.addEventListener("submit", async (e) => {
     const requestMessages = buildMessagesForRequest();
     const aiText = await getAssistantReply(requestMessages);
     const parsedResponse = parseSuggestedProducts(aiText);
+    const followUpQuestion = getContextualFollowUpQuestion(userText, aiText, parsedResponse);
 
     // Remove "Thinking..." and replace with actual assistant response.
-    chatWindow.lastChild.remove();
-    addAssistantResponse(aiText);
+    if (chatMessages.lastChild) {
+      chatMessages.lastChild.remove();
+    }
+    const renderResult = addAssistantResponse(aiText, true, followUpQuestion);
     messages.push({ role: "assistant", content: aiText });
 
-    if (parsedResponse.products.length > 0) {
-      messages.push({ role: "assistant", content: PRODUCT_FOLLOW_UP });
+    if (renderResult.followUpQuestion) {
+      messages.push({ role: "assistant", content: renderResult.followUpQuestion });
     }
 
     saveConversationState();
   } catch (error) {
-    chatWindow.lastChild.remove();
+    if (chatMessages.lastChild) {
+      chatMessages.lastChild.remove();
+    }
     addMessage("assistant", `Sorry, something went wrong. ${error.message}`);
   }
 
