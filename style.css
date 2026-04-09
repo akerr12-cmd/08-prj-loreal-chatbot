@@ -319,11 +319,32 @@ input {
   display: grid;
   gap: 0.35rem;
   max-height: 8.4rem;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 90, 90, 0.55) rgba(0, 0, 0, 0.08);
   color: var(--brand-muted);
   font-size: 0.92rem;
   line-height: 1.45;
   font-family: var(--font-body);
+}
+
+.discover-suggested-list::-webkit-scrollbar {
+  width: 0.55rem;
+}
+
+.discover-suggested-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+}
+
+.discover-suggested-list::-webkit-scrollbar-thumb {
+  background: rgba(90, 90, 90, 0.55);
+  border-radius: 999px;
+}
+
+.discover-suggested-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(60, 60, 60, 0.7);
 }
 
 .discover-suggested-list a {

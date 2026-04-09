@@ -98,11 +98,26 @@ function renderDiscoverSuggestedProducts(products) {
     return;
   }
 
-  latestSuggestedProducts = linkedProducts.slice();
-  discoverSuggestedList.innerHTML = "";
+  const mergedProducts = latestSuggestedProducts.slice();
 
   for (let i = 0; i < linkedProducts.length; i += 1) {
-    const product = linkedProducts[i];
+    const incoming = linkedProducts[i];
+    const alreadyExists = mergedProducts.some((existing) => {
+      const sameUrl = (existing.url || "").trim().toLowerCase() === (incoming.url || "").trim().toLowerCase();
+      const sameName = (existing.name || "").trim().toLowerCase() === (incoming.name || "").trim().toLowerCase();
+      return sameUrl || sameName;
+    });
+
+    if (!alreadyExists) {
+      mergedProducts.push(incoming);
+    }
+  }
+
+  latestSuggestedProducts = mergedProducts;
+  discoverSuggestedList.innerHTML = "";
+
+  for (let i = 0; i < latestSuggestedProducts.length; i += 1) {
+    const product = latestSuggestedProducts[i];
     const item = document.createElement("li");
 
     const link = document.createElement("a");
