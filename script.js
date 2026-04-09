@@ -1,10 +1,7 @@
 /* DOM elements */
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
-const chatWindow = document.getElementById("chatWindow");
 const chatMessages = document.getElementById("chatMessages");
-const suggestedProductsPanel = document.getElementById("suggestedProductsPanel");
-const suggestedProductsList = document.getElementById("suggestedProductsList");
 const discoverSuggestedList = document.getElementById("discoverSuggestedList");
 const discoverProductsDebug = document.getElementById("discoverProductsDebug");
 const downloadProductsBtn = document.getElementById("downloadProductsBtn");
@@ -87,11 +84,6 @@ function saveAssistantThreadId(threadId) {
   localStorage.removeItem(THREAD_STORAGE_KEY);
 }
 
-function hideSuggestedProducts() {
-  suggestedProductsPanel.hidden = true;
-  suggestedProductsList.innerHTML = "";
-}
-
 function renderDiscoverSuggestedProducts(products) {
   if (!discoverSuggestedList) {
     return;
@@ -124,42 +116,6 @@ function renderDiscoverSuggestedProducts(products) {
 
     discoverSuggestedList.appendChild(item);
   }
-}
-
-function renderSuggestedProducts(products) {
-  suggestedProductsList.innerHTML = "";
-
-  if (!products.length) {
-    hideSuggestedProducts();
-    return;
-  }
-
-  for (let i = 0; i < products.length; i += 1) {
-    const product = products[i];
-    const card = document.createElement(product.url ? "a" : "div");
-    card.classList.add("suggested-product-card");
-
-    if (product.url) {
-      card.classList.add("suggested-product-card--link");
-      card.href = product.url;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer";
-    }
-
-    const name = document.createElement("div");
-    name.classList.add("suggested-product-name");
-    name.textContent = product.name;
-    card.appendChild(name);
-
-    const meta = document.createElement("div");
-    meta.classList.add("suggested-product-meta");
-    meta.textContent = "Suggested by the advisor";
-    card.appendChild(meta);
-
-    suggestedProductsList.appendChild(card);
-  }
-
-  suggestedProductsPanel.hidden = false;
 }
 
 function parseSuggestedProducts(text) {
@@ -239,7 +195,6 @@ function parseSuggestedProducts(text) {
 }
 function addAssistantResponse(text) {
   const parsedResponse = parseSuggestedProducts(text);
-  renderSuggestedProducts(parsedResponse.products);
   renderDiscoverSuggestedProducts(parsedResponse.products);
   setProductsDebug(parsedResponse.products.length);
   addMessage("assistant", parsedResponse.displayText);
@@ -531,7 +486,6 @@ chatForm.addEventListener("submit", async (e) => {
   addMessage("user", userText);
   userInput.value = "";
   setLatestQuestion(userText);
-  hideSuggestedProducts();
   setProductsDebug(0, "Waiting for reply. Parsed");
 
   updateKnownUserName(userText);
