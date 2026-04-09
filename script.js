@@ -5,22 +5,16 @@ const chatWindow = document.getElementById("chatWindow");
 const chatMessages = document.getElementById("chatMessages");
 const suggestedProductsPanel = document.getElementById("suggestedProductsPanel");
 const suggestedProductsList = document.getElementById("suggestedProductsList");
+const discoverSuggestedList = document.getElementById("discoverSuggestedList");
+const downloadProductsBtn = document.getElementById("downloadProductsBtn");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const latestQuestion = document.getElementById("latestQuestion");
-const beautyFactCollapsible = document.querySelector(".hero-fact-collapsible");
 
 const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
 const STORAGE_KEY = "loreal-chat-state";
 const THREAD_STORAGE_KEY = "loreal-chat-thread-id";
-const BEAUTY_FACTS = [
-  "L'Oréal launched in 1909 and grew into one of the world's best-known beauty companies.",
-  "A simple routine usually works best: cleanse, treat, moisturize, and protect with SPF during the day.",
-  "Hair and skin care products often work best when chosen for your specific concern, not just your category.",
-  "Layering lightweight products first and richer products last helps a routine feel more balanced.",
-  "Consistent daily care usually matters more than using a lot of products at once.",
-];
 
 // Deployed Cloudflare Worker endpoint.
 const WORKER_URL = "https://lorealchatbot-worker.akerr12.workers.dev/";
@@ -30,6 +24,7 @@ const userProfile = {
 };
 
 let assistantThreadId = localStorage.getItem(THREAD_STORAGE_KEY) || "";
+let latestSuggestedProducts = [];
 const messages = [
 ];
 
@@ -42,28 +37,16 @@ function updatePlaceholderText() {
   userInput.placeholder = desktopPlaceholder;
 }
 
-function setRandomBeautyFact() {
-  const factElement = document.getElementById("beautyFactText");
-
-  if (!factElement || BEAUTY_FACTS.length === 0) {
+function setDiscoverSuggestionMessage(message) {
+  if (!discoverSuggestedList) {
     return;
   }
 
-  const randomIndex = Math.floor(Math.random() * BEAUTY_FACTS.length);
-  factElement.textContent = BEAUTY_FACTS[randomIndex];
-}
-
-function syncBeautyFactCollapsibleState() {
-  if (!beautyFactCollapsible) {
-    return;
-  }
-
-  if (window.innerWidth <= 1023) {
-    beautyFactCollapsible.removeAttribute("open");
-    return;
-  }
-
-  beautyFactCollapsible.setAttribute("open", "");
+  discoverSuggestedList.innerHTML = "";
+  const emptyItem = document.createElement("li");
+  emptyItem.classList.add("discover-suggested-empty");
+  emptyItem.textContent = message;
+  discoverSuggestedList.appendChild(emptyItem);
 }
 
 function addMessage(role, text) {
@@ -96,6 +79,39 @@ function saveAssistantThreadId(threadId) {
 function hideSuggestedProducts() {
   suggestedProductsPanel.hidden = true;
   suggestedProductsList.innerHTML = "";
+}
+
+function renderDiscoverSuggestedProducts(products) {
+  if (!discoverSuggestedList) {
+    return;
+  }
+
+  latestSuggestedProducts = products.slice();
+  discoverSuggestedList.innerHTML = "";
+
+  if (!products.length) {
+    setDiscoverSuggestionMessage("No products suggested yet. Ask about a routine or concern.");
+    latestSuggestedProducts = [];
+    return;
+  }
+
+  for (let i = 0; i < products.length; i += 1) {
+    const product = products[i];
+    const item = document.createElement("li");
+
+    if (product.url) {
+      const link = document.createElement("a");
+      link.href = product.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = product.name;
+      item.appendChild(link);
+    } else {
+      item.textContent = product.name;
+    }
+
+    discoverSuggestedList.appendChild(item);
+  }
 }
 
 function renderSuggestedProducts(products) {
@@ -191,6 +207,7 @@ function parseSuggestedProducts(text) {
 function addAssistantResponse(text) {
   const parsedResponse = parseSuggestedProducts(text);
   renderSuggestedProducts(parsedResponse.products);
+  renderDiscoverSuggestedProducts(parsedResponse.products);
   addMessage("assistant", parsedResponse.displayText);
 }
 
@@ -337,6 +354,46 @@ function downloadChatHistory() {
   URL.revokeObjectURL(objectUrl);
 }
 
+function getSuggestedProductLinesForDownload() {
+  if (!latestSuggestedProducts.length) {
+    return ["L'Oreal Suggested Products", "", "No suggested products available yet."];
+  }
+
+  const lines = [
+    "L'Oreal Suggested Products",
+    `Exported: ${new Date().toLocaleString()}`,
+    "",
+  ];
+
+  for (let i = 0; i < latestSuggestedProducts.length; i += 1) {
+    const product = latestSuggestedProducts[i];
+    const itemNumber = i + 1;
+
+    if (product.url) {
+      lines.push(`${itemNumber}. ${product.name} - ${product.url}`);
+    } else {
+      lines.push(`${itemNumber}. ${product.name}`);
+    }
+  }
+
+  return lines;
+}
+
+function downloadSuggestedProducts() {
+  const lines = getSuggestedProductLinesForDownload();
+  const fileText = lines.join("\n");
+  const fileBlob = new Blob([fileText], { type: "text/plain" });
+  const objectUrl = URL.createObjectURL(fileBlob);
+  const downloadLink = document.createElement("a");
+
+  downloadLink.href = objectUrl;
+  downloadLink.download = `loreal-suggested-products-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+  URL.revokeObjectURL(objectUrl);
+}
+
 function clearConversation() {
   userProfile.name = "";
   localStorage.removeItem(STORAGE_KEY);
@@ -396,13 +453,13 @@ if (!hasLoadedHistory) {
 }
 
 setLatestQuestion(getLastUserQuestion());
-setRandomBeautyFact();
-syncBeautyFactCollapsibleState();
+if (discoverSuggestedList && discoverSuggestedList.children.length === 0) {
+  setDiscoverSuggestionMessage("Ask a question to see product suggestions.");
+}
 
 updatePlaceholderText();
 
 window.addEventListener("resize", updatePlaceholderText);
-window.addEventListener("resize", syncBeautyFactCollapsibleState);
 
 // Enter sends the message. Shift+Enter inserts a new line.
 userInput.addEventListener("keydown", (e) => {
@@ -420,6 +477,12 @@ downloadBtn.addEventListener("click", () => {
   downloadChatHistory();
 });
 
+if (downloadProductsBtn) {
+  downloadProductsBtn.addEventListener("click", () => {
+    downloadSuggestedProducts();
+  });
+}
+
 /* Handle form submit */
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -434,6 +497,8 @@ chatForm.addEventListener("submit", async (e) => {
   userInput.value = "";
   setLatestQuestion(userText);
   hideSuggestedProducts();
+  latestSuggestedProducts = [];
+  setDiscoverSuggestionMessage("Finding product matches...");
 
   updateKnownUserName(userText);
   messages.push({ role: "user", content: userText });

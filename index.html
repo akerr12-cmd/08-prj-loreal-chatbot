@@ -20,12 +20,36 @@
       <img class="site-logo" src="img/loreal-logo.png" alt="L'Oréal logo">
       <h1 class="site-title">L’Oréal Beauty Advisor</h1>
       <p class="site-subtitle">Luxury beauty guidance, tailored to you</p>
-      <div class="brand-pills" role="group" aria-label="Beauty categories">
-        <span>Skin</span>
-        <span>Hair</span>
-        <span>Makeup</span>
-        <span>Fragrance</span>
-      </div>
+      <section class="category-section" aria-label="Explore by category">
+        <div class="molecular-divider" aria-hidden="true">
+          <span class="node"></span><span class="line"></span>
+          <span class="node"></span><span class="line"></span>
+          <span class="node"></span><span class="line"></span>
+          <span class="node"></span><span class="line"></span>
+          <span class="node"></span>
+        </div>
+
+        <h2 class="category-title">Explore by category</h2>
+
+        <div class="categories">
+          <div class="category">
+            <img src="img/molecule.svg" alt="Skin icon" class="icon">
+            <h3>Skin</h3>
+          </div>
+          <div class="category">
+            <img src="img/hair.svg" alt="Hair icon" class="icon">
+            <h3>Hair</h3>
+          </div>
+          <div class="category">
+            <img src="img/makeup.svg" alt="Makeup icon" class="icon">
+            <h3>Makeup</h3>
+          </div>
+          <div class="category">
+            <img src="img/fragrance.svg" alt="Fragrance icon" class="icon">
+            <h3>Fragrance</h3>
+          </div>
+        </div>
+      </section>
     </header>
 
     <!-- Split Canvas Layout -->
@@ -41,10 +65,13 @@
           <p class="hero-text hero-text--mobile">
             Personalized beauty advice for products, steps, and routines.
           </p>
-          <details class="hero-fact hero-fact-collapsible" role="group" aria-label="L'Oréal beauty fact">
-            <summary class="hero-fact-toggle">Beauty fact</summary>
-            <p id="beautyFactText" class="hero-fact-text"></p>
-          </details>
+          <section class="discover-suggested" aria-labelledby="discoverSuggestedTitle">
+            <h3 id="discoverSuggestedTitle" class="discover-suggested-title">Suggested Products</h3>
+            <ul id="discoverSuggestedList" class="discover-suggested-list">
+              <li class="discover-suggested-empty">Ask a question to see product suggestions.</li>
+            </ul>
+          </section>
+          <button type="button" id="downloadProductsBtn" class="discover-download-btn">Download Product List</button>
         </div>
       </section>
 
