@@ -13,7 +13,7 @@ const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
 const STORAGE_KEY = "loreal-chat-state";
 const MAX_HISTORY_MESSAGES = 20;
-const PRODUCT_FOLLOW_UP = "Would you like to know where you can find these suggested products based on your location?";
+const PRODUCT_FOLLOW_UP = "You can usually find these at major beauty and retail stores like Ulta Beauty, Target, Walmart, CVS, Walgreens, and Amazon, plus many local L'Oréal brand retailers.";
 const BEAUTY_FACTS = [
   "L'Oréal launched in 1909 and grew into one of the world's best-known beauty companies.",
   "A simple routine usually works best: cleanse, treat, moisturize, and protect with SPF during the day.",
@@ -170,71 +170,71 @@ function getContextualFollowUpQuestion(userText, aiText, parsedResponse) {
   const combinedText = `${userText} ${aiText}`.toLowerCase();
 
   if (/cleanser|face wash|cleanse|double cleanse|micellar/.test(combinedText)) {
-    return "What is your skin type, and are you looking for a gentle, brightening, or acne-focused cleanser?";
+    return "Tell me a little about your skin, and what do you want your cleanser to help with most?";
   }
 
   if (/serum|essence|treatment|booster|ampoule|spot treatment/.test(combinedText)) {
-    return "Are you looking for a brightening, hydrating, smoothing, or anti-aging treatment?";
+    return "What are you hoping to improve right now: brightness, hydration, smoothing, or anti-aging?";
   }
 
   if (/moisturizer|cream|lotion|gel cream|hydrator|moisturizing/.test(combinedText)) {
-    return "Do you want a lightweight gel, a richer cream, or something barrier-supporting?";
+    return "Do you usually like something light and fresh, richer and more nourishing, or barrier-supporting?";
   }
 
   if (/sunscreen|spf|sun protection|uv|broad spectrum/.test(combinedText)) {
-    return "Do you need a daily face SPF, a body sunscreen, or a formula that layers well under makeup?";
+    return "Are you thinking about your face, your body, or a formula that layers nicely under makeup?";
   }
 
   if (/mask|sheet mask|sleeping mask|overnight mask/.test(combinedText)) {
-    return "Would you like a mask for hydration, repair, or glow?";
+    return "Are you in the mood for hydration, repair, or just a little extra glow?";
   }
 
   if (/toner|exfoliant|exfoliating|acid|bha|aha|lactic|glycolic|salicylic/.test(combinedText)) {
-    return "Are you looking for gentle exfoliation, pore care, or texture smoothing?";
+    return "Are you hoping to keep things gentle, refine pores, or smooth texture a bit?";
   }
 
   if (/\bhair\b|hair care|shampoo|conditioner|mask|scalp|leave-in|heat protect|frizz|split ends|curl|curly|straight|wavy|damage|breakage|volume|shine|thinning/.test(combinedText)) {
-    return "What is your hair type, and do you want help with cleansing, conditioning, repair, styling, or scalp care?";
+    return "Tell me a little about your hair, and what would make the biggest difference for you right now?";
   }
 
   if (/foundation|concealer|blush|bronzer|mascara|lipstick|lip gloss|eyeliner|primer|setting spray|powder|base|coverage|glow|matte|natural/.test(combinedText)) {
-    return "What makeup step or product family are you focusing on, and what finish do you want?";
+    return "What kind of makeup look are you going for, and what finish feels most like you?";
   }
 
   if (/\bfragrance\b|perfume|scent|smell|notes|cologne|body mist/.test(combinedText)) {
-    return "Do you want to explore fresh, floral, warm, sweet, or bold scent families?";
+    return "What kinds of scents do you naturally gravitate toward: fresh, floral, warm, sweet, or bold?";
   }
 
   if (/ingredient|ingredients|safe|safety|irritation|allergy|sensitive|paraben|sulfate|fragrance-free|acid|retinol|niacinamide|ceramide|hyaluronic|peptide|vitamin c/.test(combinedText)) {
-    return "Do you want to learn what an ingredient does, how it works, or which formula it fits best in?";
+    return "Do you want to understand what the ingredient does, or are you trying to see if it fits your routine?";
   }
 
   if (/innovation|sustainability|research|science|scientific|chemistry|formulation|formulas|formulation principles|cosmetic science/.test(combinedText)) {
-    return "Would you like to focus on ingredients, formulation, or L'Oréal innovation and sustainability?";
+    return "Would you like to hear more about the ingredients, the formulation, or the innovation behind it?";
   }
 
   if (/shade|undertone|undertones|texture|textures|finish|finishes|match|matching|tone|color theory/.test(combinedText)) {
-    return "What shade, undertone, texture, or finish are you trying to match?";
+    return "What are you trying to match most closely: shade, undertone, texture, or finish?";
   }
 
   if (/routine|step|steps|regimen|morning|night|day|nighttime|layering|ritual|application order/.test(combinedText)) {
-    return "Are you building a morning routine, nighttime routine, or full routine, and for which skin or hair concern?";
+    return "Are you building a morning routine, a nighttime routine, or something for the whole day?";
   }
 
   if (/compare|comparison|versus|\bvs\b/.test(combinedText)) {
-    return "Which L'Oréal products or sub-brands do you want to compare, and what matters most to you?";
+    return "Which products are you comparing, and what matters most to you when you choose between them?";
   }
 
   if (/sub-brand|sub-brands|brand|brands|category|categories|benefit|benefits|loreal paris|lancome|kiehl's|kiehls|la roche-posay|garnier|loreal/.test(combinedText)) {
-    return "Which L'Oréal sub-brand or product family would you like to explore?";
+    return "Is there a L'Oréal brand or product family you're curious about today?";
   }
 
   if (/beauty education|education|empowerment|understand|learn/.test(combinedText)) {
-    return "Would you like a quick explanation, a science breakdown, or a product suggestion?";
+    return "Do you want the quick version, the science behind it, or a product suggestion?";
   }
 
   if (/product|products|recommend|recommendation|suggest|routine/.test(combinedText)) {
-    return "Which product family are you most interested in: cleanser, serum, moisturizer, SPF, shampoo, conditioner, foundation, mascara, or fragrance?";
+    return "What kind of product are you thinking about right now?";
   }
 
   return "";
@@ -433,13 +433,7 @@ function downloadChatHistory() {
 function clearConversation() {
   userProfile.name = "";
   localStorage.removeItem(STORAGE_KEY);
-  messages.length = 1;
-  chatWindow.innerHTML = "";
-  hideSuggestedProducts();
-  setLatestQuestion("");
-  addWelcomeMessage();
-  saveConversationState();
-  userInput.focus();
+  window.location.reload();
 }
 
 async function getAssistantReply(requestMessages) {
