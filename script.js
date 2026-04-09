@@ -108,19 +108,18 @@ function renderSuggestedProducts(products) {
 
   for (let i = 0; i < products.length; i += 1) {
     const product = products[i];
-    const card = document.createElement("div");
+    const card = document.createElement(product.url ? "a" : "div");
     card.classList.add("suggested-product-card");
 
-    const name = document.createElement(product.url ? "a" : "div");
-    name.classList.add("suggested-product-name");
-
     if (product.url) {
-      name.classList.add("suggested-product-link");
-      name.href = product.url;
-      name.target = "_blank";
-      name.rel = "noopener noreferrer";
+      card.classList.add("suggested-product-card--link");
+      card.href = product.url;
+      card.target = "_blank";
+      card.rel = "noopener noreferrer";
     }
 
+    const name = document.createElement("div");
+    name.classList.add("suggested-product-name");
     name.textContent = product.name;
     card.appendChild(name);
 
@@ -159,14 +158,25 @@ function parseSuggestedProducts(text) {
       break;
     }
 
-    const bulletMatch = line.match(/^[\-•*]\s+([^|]+?)(?:\s*\|\s*(https?:\/\/\S+))?$/);
+    const markdownLinkMatch = line.match(/^[\-•*]\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+    const pipeMatch = line.match(/^[\-•*]\s+([^|]+?)(?:\s*\|\s*(https?:\/\/\S+))?$/);
+    const plainUrlMatch = line.match(/^[\-•*]\s+(.+?)\s+(https?:\/\/\S+)$/);
 
-    if (!bulletMatch) {
-      break;
-    }
+    const name = markdownLinkMatch
+      ? markdownLinkMatch[1].trim()
+      : pipeMatch
+        ? pipeMatch[1].trim()
+        : plainUrlMatch
+          ? plainUrlMatch[1].trim()
+          : "";
 
-    const name = bulletMatch[1].trim();
-    const url = bulletMatch[2] ? bulletMatch[2].trim() : "";
+    const url = markdownLinkMatch
+      ? markdownLinkMatch[2].trim()
+      : pipeMatch && pipeMatch[2]
+        ? pipeMatch[2].trim()
+        : plainUrlMatch
+          ? plainUrlMatch[2].trim()
+          : "";
 
     if (name) {
       products.push({ name, url });
