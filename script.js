@@ -6,6 +6,7 @@ const chatMessages = document.getElementById("chatMessages");
 const suggestedProductsPanel = document.getElementById("suggestedProductsPanel");
 const suggestedProductsList = document.getElementById("suggestedProductsList");
 const discoverSuggestedList = document.getElementById("discoverSuggestedList");
+const discoverProductsDebug = document.getElementById("discoverProductsDebug");
 const downloadProductsBtn = document.getElementById("downloadProductsBtn");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
@@ -47,6 +48,16 @@ function setDiscoverSuggestionMessage(message) {
   emptyItem.classList.add("discover-suggested-empty");
   emptyItem.textContent = message;
   discoverSuggestedList.appendChild(emptyItem);
+}
+
+function setProductsDebug(count, prefix = "Parsed") {
+  if (!discoverProductsDebug) {
+    return;
+  }
+
+  const safeCount = Number.isFinite(count) ? Math.max(0, count) : 0;
+  const label = safeCount === 1 ? "product" : "products";
+  discoverProductsDebug.textContent = `${prefix} ${safeCount} ${label} from latest reply.`;
 }
 
 function addMessage(role, text) {
@@ -229,6 +240,7 @@ function addAssistantResponse(text) {
   const parsedResponse = parseSuggestedProducts(text);
   renderSuggestedProducts(parsedResponse.products);
   renderDiscoverSuggestedProducts(parsedResponse.products);
+  setProductsDebug(parsedResponse.products.length);
   addMessage("assistant", parsedResponse.displayText);
 }
 
@@ -477,6 +489,7 @@ setLatestQuestion(getLastUserQuestion());
 if (discoverSuggestedList && discoverSuggestedList.children.length === 0) {
   setDiscoverSuggestionMessage("Ask a question to see product suggestions.");
 }
+setProductsDebug(latestSuggestedProducts.length);
 
 updatePlaceholderText();
 
@@ -519,6 +532,7 @@ chatForm.addEventListener("submit", async (e) => {
   setLatestQuestion(userText);
   hideSuggestedProducts();
   latestSuggestedProducts = [];
+  setProductsDebug(0, "Waiting for reply. Parsed");
   setDiscoverSuggestionMessage("Finding product matches...");
 
   updateKnownUserName(userText);
@@ -546,6 +560,7 @@ chatForm.addEventListener("submit", async (e) => {
     } else {
       addMessage("assistant", `Sorry, something went wrong. ${error.message}`);
     }
+    setProductsDebug(0, "Reply failed. Parsed");
   }
 
   userInput.focus();
