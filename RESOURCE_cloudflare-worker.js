@@ -73,6 +73,11 @@ export default {
         headers: openAiHeaders,
         body: JSON.stringify({
           assistant_id: assistantId,
+          additional_instructions: [
+            'Treat each new user message as a continuation of the same conversation unless the user clearly starts a new topic.',
+            'If the user is answering your previous question, do not restart; continue from the prior turn naturally.',
+            'When you suggest products, always include a section exactly titled "Suggested products:" followed by up to 3 bullet items in this format: - Product Name | https://product-url'
+          ].join(' '),
         }),
       });
 
@@ -100,7 +105,7 @@ export default {
       return data;
     }
 
-    async function getLatestAssistantMessage(activeThreadId) {
+    async function getLatestAssistantMessage(activeThreadId, runId) {
       const response = await fetch(`${apiBase}/threads/${activeThreadId}/messages?limit=20`, {
         method: 'GET',
         headers: openAiHeaders,
@@ -113,14 +118,22 @@ export default {
       }
 
       const messages = data.data || [];
-      const assistantMessage = [...messages].reverse().find((message) => message.role === 'assistant');
+      let assistantMessage = messages.find((message) => message.role === 'assistant' && message.run_id === runId);
+
+      if (!assistantMessage) {
+        assistantMessage = messages.find((message) => message.role === 'assistant');
+      }
 
       if (!assistantMessage) {
         throw new Error('No assistant message was returned.');
       }
 
-      const contentBlock = assistantMessage.content && assistantMessage.content[0];
-      const assistantText = contentBlock && contentBlock.type === 'text' ? contentBlock.text.value : '';
+      const textParts = (assistantMessage.content || [])
+        .filter((contentBlock) => contentBlock.type === 'text' && contentBlock.text && contentBlock.text.value)
+        .map((contentBlock) => contentBlock.text.value.trim())
+        .filter(Boolean);
+
+      const assistantText = textParts.join('\n\n');
 
       if (!assistantText) {
         throw new Error('Assistant response text was empty.');
@@ -155,7 +168,7 @@ export default {
       throw new Error(`Assistant run ended with status: ${runData.status}`);
     }
 
-    const assistantText = await getLatestAssistantMessage(activeThreadId);
+    const assistantText = await getLatestAssistantMessage(activeThreadId, runId);
 
     return new Response(JSON.stringify({
       threadId: activeThreadId,

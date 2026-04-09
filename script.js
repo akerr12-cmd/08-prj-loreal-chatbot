@@ -152,7 +152,8 @@ function renderSuggestedProducts(products) {
 
 function parseSuggestedProducts(text) {
   const normalizedText = text.replace(/\r\n/g, "\n");
-  const match = normalizedText.match(/(?:^|\n)Suggested products:\s*\n([\s\S]*)/);
+  const sectionRegex = /(?:^|\n)(?:#{1,6}\s*)?(?:suggested|recommended)\s+products?\s*:?\s*\n([\s\S]*)/i;
+  const match = normalizedText.match(sectionRegex);
 
   if (!match) {
     return {
@@ -174,9 +175,9 @@ function parseSuggestedProducts(text) {
       break;
     }
 
-    const markdownLinkMatch = line.match(/^[\-•*]\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
-    const pipeMatch = line.match(/^[\-•*]\s+([^|]+?)(?:\s*\|\s*(https?:\/\/\S+))?$/);
-    const plainUrlMatch = line.match(/^[\-•*]\s+(.+?)\s+(https?:\/\/\S+)$/);
+    const markdownLinkMatch = line.match(/^(?:[\-•*]|\d+\.)\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+    const pipeMatch = line.match(/^(?:[\-•*]|\d+\.)\s+([^|]+?)(?:\s*\|\s*(https?:\/\/\S+))?$/);
+    const plainUrlMatch = line.match(/^(?:[\-•*]|\d+\.)\s+(.+?)\s+(https?:\/\/\S+)$/);
 
     const name = markdownLinkMatch
       ? markdownLinkMatch[1].trim()
@@ -194,10 +195,30 @@ function parseSuggestedProducts(text) {
           ? plainUrlMatch[2].trim()
           : "";
 
-    if (name) {
-      products.push({ name, url });
+      const cleanedName = name.replace(/^["'`\-\s]+|["'`\s]+$/g, "");
+
+      if (cleanedName) {
+        products.push({ name: cleanedName, url });
     }
   }
+
+    if (!products.length) {
+      const fallbackListRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+([^\n|]+?)\s*(?:\|\s*(https?:\/\/\S+)|\((https?:\/\/\S+)\)|\s+(https?:\/\/\S+))?\s*$/gim;
+      let fallbackMatch;
+
+      while ((fallbackMatch = fallbackListRegex.exec(normalizedText)) !== null) {
+        const fallbackName = (fallbackMatch[1] || "").trim();
+        const fallbackUrl = (fallbackMatch[2] || fallbackMatch[3] || fallbackMatch[4] || "").trim();
+
+        if (fallbackName) {
+          products.push({ name: fallbackName, url: fallbackUrl });
+        }
+
+        if (products.length >= 3) {
+          break;
+        }
+      }
+    }
 
   return {
     displayText: displayText || text.trim(),
