@@ -97,14 +97,15 @@ function renderDiscoverSuggestedProducts(products) {
     return;
   }
 
-  latestSuggestedProducts = products.slice();
-  discoverSuggestedList.innerHTML = "";
-
   if (!products.length) {
-    setDiscoverSuggestionMessage("No products suggested yet. Ask about a routine or concern.");
-    latestSuggestedProducts = [];
+    if (!latestSuggestedProducts.length) {
+      setDiscoverSuggestionMessage("No products suggested yet. Ask about a routine or concern.");
+    }
     return;
   }
+
+  latestSuggestedProducts = products.slice();
+  discoverSuggestedList.innerHTML = "";
 
   for (let i = 0; i < products.length; i += 1) {
     const product = products[i];
@@ -531,9 +532,7 @@ chatForm.addEventListener("submit", async (e) => {
   userInput.value = "";
   setLatestQuestion(userText);
   hideSuggestedProducts();
-  latestSuggestedProducts = [];
   setProductsDebug(0, "Waiting for reply. Parsed");
-  setDiscoverSuggestionMessage("Finding product matches...");
 
   updateKnownUserName(userText);
   messages.push({ role: "user", content: userText });

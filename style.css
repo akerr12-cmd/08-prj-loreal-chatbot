@@ -588,6 +588,7 @@ input {
 }
 
 .suggested-products {
+  display: none !important;
   margin-top: 0;
   padding: 0.9rem;
   border-radius: 1rem;
