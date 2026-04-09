@@ -19,6 +19,12 @@
       <img class="site-logo" src="img/loreal-logo.png" alt="L'Oréal logo" />
       <h1 class="site-title">L’Oréal Beauty Advisor</h1>
       <p class="site-subtitle">Luxury beauty guidance, tailored to you</p>
+      <div class="brand-pills" aria-label="Beauty categories">
+        <span>Skin</span>
+        <span>Hair</span>
+        <span>Makeup</span>
+        <span>Fragrance</span>
+      </div>
     </header>
 
     <!-- Split Canvas Layout -->
@@ -33,6 +39,17 @@
         <p class="hero-text hero-text--mobile">
           Personalized beauty advice for products, steps, and routines.
         </p>
+        <div class="beauty-palette" aria-label="Featured beauty tones">
+          <div class="shade-card shade-rose">
+            <span>Radiance</span>
+          </div>
+          <div class="shade-card shade-copper">
+            <span>Warmth</span>
+          </div>
+          <div class="shade-card shade-plum">
+            <span>Depth</span>
+          </div>
+        </div>
       </section>
 
       <!-- Right Chat Panel -->
@@ -45,6 +62,14 @@
         <p id="latestQuestion" class="latest-question" hidden></p>
 
         <div id="chatWindow" class="chat-window"></div>
+
+        <section id="suggestedProductsPanel" class="suggested-products" hidden>
+          <div class="suggested-products-header">
+            <p class="suggested-products-title">Suggested products</p>
+            <p class="suggested-products-note">Official links appear when the assistant includes them.</p>
+          </div>
+          <div id="suggestedProductsList" class="suggested-products-list"></div>
+        </section>
 
         <form id="chatForm" class="chat-form">
           <textarea
