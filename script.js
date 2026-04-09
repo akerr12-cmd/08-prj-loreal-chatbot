@@ -260,8 +260,24 @@ function parseSuggestedProducts(text) {
     products: products.slice(0, 3),
   };
 }
-function addAssistantResponse(text) {
-  const parsedResponse = parseSuggestedProducts(text);
+function addAssistantResponse(payload) {
+  const assistantText = typeof payload === "string"
+    ? payload
+    : payload && typeof payload.content === "string"
+      ? payload.content
+      : "";
+
+  const structuredProducts = payload && Array.isArray(payload.products)
+    ? payload.products.filter((product) => product && product.name && product.url)
+    : [];
+
+  const parsedResponse = structuredProducts.length
+    ? {
+        displayText: assistantText.trim(),
+        products: structuredProducts,
+      }
+    : parseSuggestedProducts(assistantText);
+
   renderDiscoverSuggestedProducts(parsedResponse.products);
   setProductsDebug(parsedResponse.products.length);
   addMessage("assistant", parsedResponse.displayText);
@@ -491,12 +507,16 @@ async function getAssistantReply(userText) {
   }
 
   const assistantText = data?.content;
+  const assistantProducts = Array.isArray(data?.products) ? data.products : [];
 
   if (!assistantText) {
     throw new Error("No assistant response was returned.");
   }
 
-  return assistantText;
+  return {
+    content: assistantText,
+    products: assistantProducts,
+  };
 }
 
 // Restore existing chat history when available.
@@ -562,14 +582,14 @@ chatForm.addEventListener("submit", async (e) => {
   addMessage("assistant", "Thinking...");
 
   try {
-    const aiText = await getAssistantReply(userText);
+    const assistantPayload = await getAssistantReply(userText);
 
     if (chatMessages.lastChild) {
       chatMessages.lastChild.remove();
     }
 
-    addAssistantResponse(aiText);
-    messages.push({ role: "assistant", content: aiText });
+    addAssistantResponse(assistantPayload);
+    messages.push({ role: "assistant", content: assistantPayload.content });
     saveConversationState();
   } catch (error) {
     if (chatMessages.lastChild) {

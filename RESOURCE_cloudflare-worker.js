@@ -76,7 +76,9 @@ export default {
           additional_instructions: [
             'Treat each new user message as a continuation of the same conversation unless the user clearly starts a new topic.',
             'If the user is answering your previous question, do not restart; continue from the prior turn naturally.',
-            'When you suggest products, always include a section exactly titled "Suggested products:" followed by up to 3 bullet items in this format: - Product Name | https://product-url'
+            'Return a valid JSON object only with this exact shape: {"answer":"string","products":[{"name":"string","url":"https://..."}]}.',
+            'The answer field must contain the conversational reply for chat.',
+            'The products field must contain up to 3 real L\'Oreal product links. If none, return an empty array.'
           ].join(' '),
         }),
       });
@@ -142,6 +144,73 @@ export default {
       return assistantText;
     }
 
+    function normalizeProducts(products) {
+      if (!Array.isArray(products)) {
+        return [];
+      }
+
+      const cleaned = [];
+
+      for (let i = 0; i < products.length; i += 1) {
+        const item = products[i] || {};
+        const name = String(item.name || '').trim();
+        const url = String(item.url || '').trim();
+
+        if (!name || !url) {
+          continue;
+        }
+
+        if (!/^https?:\/\//i.test(url)) {
+          continue;
+        }
+
+        cleaned.push({ name, url });
+
+        if (cleaned.length >= 3) {
+          break;
+        }
+      }
+
+      return cleaned;
+    }
+
+    function extractStructuredPayload(text) {
+      const raw = String(text || '').trim();
+
+      if (!raw) {
+        return { answer: '', products: [] };
+      }
+
+      const candidates = [raw];
+
+      const fencedMatch = raw.match(/```json\s*([\s\S]*?)\s*```/i);
+      if (fencedMatch && fencedMatch[1]) {
+        candidates.push(fencedMatch[1].trim());
+      }
+
+      const firstBrace = raw.indexOf('{');
+      const lastBrace = raw.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        candidates.push(raw.slice(firstBrace, lastBrace + 1));
+      }
+
+      for (let i = 0; i < candidates.length; i += 1) {
+        try {
+          const parsed = JSON.parse(candidates[i]);
+          const answer = typeof parsed.answer === 'string' ? parsed.answer.trim() : '';
+          const products = normalizeProducts(parsed.products);
+
+          if (answer || products.length) {
+            return { answer: answer || raw, products };
+          }
+        } catch (error) {
+          // Keep trying other candidate JSON snippets.
+        }
+      }
+
+      return { answer: raw, products: [] };
+    }
+
     let activeThreadId = threadId;
 
     if (!activeThreadId) {
@@ -169,10 +238,12 @@ export default {
     }
 
     const assistantText = await getLatestAssistantMessage(activeThreadId, runId);
+    const structured = extractStructuredPayload(assistantText);
 
     return new Response(JSON.stringify({
       threadId: activeThreadId,
-      content: assistantText,
+      content: structured.answer || assistantText,
+      products: structured.products,
     }), { headers: corsHeaders });
   }
 };
