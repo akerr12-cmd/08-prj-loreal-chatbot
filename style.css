@@ -314,8 +314,11 @@ input {
 .discover-suggested-list {
   margin: 0.7rem 0 0;
   padding-left: 1rem;
+  padding-right: 0.2rem;
   display: grid;
   gap: 0.35rem;
+  max-height: 8.4rem;
+  overflow-y: auto;
   color: var(--brand-muted);
   font-size: 0.92rem;
   line-height: 1.45;
@@ -911,6 +914,8 @@ input {
 
   .discover-suggested-list {
     margin-top: 0.5rem;
+    padding-right: 0.1rem;
+    max-height: 6.5rem;
     font-size: 0.82rem;
     line-height: 1.35;
   }
