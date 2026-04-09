@@ -71,7 +71,7 @@ input {
   z-index: 0;
   pointer-events: none;
   opacity: 0.25;
-  background: url("img/beauty-scientist-bg1.png") left center / cover no-repeat;
+  background: url("img/Inksplat-bg.png") left center / cover no-repeat;
 }
 
 .page-bg-art::after {
