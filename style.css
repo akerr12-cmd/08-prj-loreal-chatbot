@@ -19,15 +19,17 @@
 }
 
 html {
+  height: 100%;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  min-height: 100vh;
-  min-height: 100svh;
+  height: 100%;
+  min-height: 100%;
   font-family: var(--font-body);
   font-weight: var(--weight-regular);
   color: var(--brand-ink);
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(231, 224, 212, 0.45) 0%, rgba(231, 222, 200, 0.22) 100%),
     radial-gradient(circle at top right, rgba(227, 165, 53, 0.16) 0%, rgba(227, 165, 53, 0) 34%),
@@ -49,9 +51,15 @@ input {
 .beauty-tech-bg {
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100svh;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
+}
+
+@supports not (height: 100dvh) {
+  .beauty-tech-bg {
+    height: 100svh;
+  }
 }
 
 .page-bg-art {
@@ -141,10 +149,14 @@ input {
 
 .page-wrapper {
   width: min(100% - 1.5rem, 72rem);
+  height: 100%;
   margin: 0 auto;
   padding: 1rem 0 1.5rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
 
 .site-header {
@@ -225,9 +237,12 @@ input {
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
 }
 
-.hero-fact-tag {
+.hero-fact-toggle {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  list-style: none;
   min-height: 1.7rem;
   padding: 0.25rem 0.65rem;
   border-radius: 999px;
@@ -238,6 +253,21 @@ input {
   font-size: 0.78rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+}
+
+.hero-fact-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.hero-fact-toggle::after {
+  content: "+";
+  margin-left: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.hero-fact-collapsible[open] .hero-fact-toggle::after {
+  content: "-";
 }
 
 .hero-fact-text {
@@ -265,6 +295,8 @@ input {
   grid-template-columns: 1fr;
   gap: 1rem;
   margin-top: 1.5rem;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .discover-panel {
@@ -330,6 +362,7 @@ input {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .chat-panel-header {
@@ -401,9 +434,9 @@ input {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  height: clamp(18rem, 52vh, 30rem);
-  min-height: 18rem;
-  max-height: 30rem;
+  height: auto;
+  min-height: 0;
+  max-height: none;
   gap: 0.85rem;
   padding: 1rem;
   border-radius: 1rem;
@@ -682,6 +715,118 @@ input {
   color: var(--brand-white);
 }
 
+@media (max-width: 1023px) {
+  .page-wrapper {
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 0.6rem 0 0.75rem;
+  }
+
+  .site-header {
+    padding-top: 0.35rem;
+    margin-bottom: 0;
+  }
+
+  .site-logo {
+    width: 3.4rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .site-title {
+    font-size: clamp(1.3rem, 5.1vw, 1.65rem);
+  }
+
+  .site-subtitle,
+  .brand-pills,
+  .site-footer {
+    display: none;
+  }
+
+  .split-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    margin-top: 0.55rem;
+    gap: 0.45rem;
+  }
+
+  .discover-panel {
+    display: flex;
+    order: 1;
+    padding-top: 0;
+  }
+
+  .discover-box {
+    width: 100%;
+    padding: 0.55rem 0.7rem 0.6rem;
+    border-radius: 0.8rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .hero-headline {
+    max-width: none;
+    font-size: clamp(1.05rem, 4.3vw, 1.35rem);
+    line-height: 1.1;
+  }
+
+  .hero-headline::after {
+    width: 2.2rem;
+    height: 0.14rem;
+    margin-top: 0.3rem;
+  }
+
+  .hero-text {
+    max-width: none;
+    margin-top: 0.25rem;
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+
+  .hero-text--desktop {
+    display: none;
+  }
+
+  .hero-text--mobile {
+    display: block;
+  }
+
+  .hero-fact {
+    display: block;
+    margin-top: 0.45rem;
+    padding: 0.52rem 0.62rem 0.58rem;
+    border-radius: 0.72rem;
+  }
+
+  .hero-fact-toggle {
+    min-height: 1.35rem;
+    padding: 0.18rem 0.5rem;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+  }
+
+  .hero-fact-text {
+    margin-top: 0.5rem;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .chatbox {
+    order: 2;
+    min-height: 0;
+  }
+
+  .glass-panel {
+    padding: 0.8rem;
+    border-radius: 1rem;
+  }
+
+  .chat-panel-header {
+    margin-bottom: 0.6rem;
+  }
+
+  .chat-form {
+    margin-top: 0.7rem;
+  }
+}
+
 @media (max-width: 399px) {
   .page-bg-art {
     width: clamp(24rem, 92vw, 42rem);
@@ -705,9 +850,9 @@ input {
   }
 
   .chat-window {
-    height: clamp(14rem, 46vh, 19rem);
-    min-height: 14rem;
-    max-height: 19rem;
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 
   .chat-form {
@@ -751,9 +896,9 @@ input {
   }
 
   .chat-window {
-    height: clamp(20rem, 54vh, 28rem);
-    min-height: 20rem;
-    max-height: 28rem;
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 
   .chat-form {
@@ -839,9 +984,9 @@ input {
   }
 
   .chat-window {
-    height: clamp(24rem, 58vh, 34rem);
-    min-height: 24rem;
-    max-height: 34rem;
+    height: auto;
+    min-height: 0;
+    max-height: none;
     padding: 1.1rem;
   }
 
@@ -887,9 +1032,9 @@ input {
   }
 
   .chat-window {
-    height: clamp(26rem, 62vh, 36rem);
-    min-height: 26rem;
-    max-height: 36rem;
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 
   .site-footer {

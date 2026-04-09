@@ -8,6 +8,7 @@ const suggestedProductsList = document.getElementById("suggestedProductsList");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const latestQuestion = document.getElementById("latestQuestion");
+const beautyFactCollapsible = document.querySelector(".hero-fact-collapsible");
 
 const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
@@ -58,6 +59,19 @@ function setRandomBeautyFact() {
 
   const randomIndex = Math.floor(Math.random() * BEAUTY_FACTS.length);
   factElement.textContent = BEAUTY_FACTS[randomIndex];
+}
+
+function syncBeautyFactCollapsibleState() {
+  if (!beautyFactCollapsible) {
+    return;
+  }
+
+  if (window.innerWidth <= 1023) {
+    beautyFactCollapsible.removeAttribute("open");
+    return;
+  }
+
+  beautyFactCollapsible.setAttribute("open", "");
 }
 
 function addMessage(role, text) {
@@ -478,10 +492,12 @@ if (!hasLoadedHistory) {
 
 setLatestQuestion(getLastUserQuestion());
 setRandomBeautyFact();
+syncBeautyFactCollapsibleState();
 
 updatePlaceholderText();
 
 window.addEventListener("resize", updatePlaceholderText);
+window.addEventListener("resize", syncBeautyFactCollapsibleState);
 
 // Enter sends the message. Shift+Enter inserts a new line.
 userInput.addEventListener("keydown", (e) => {
