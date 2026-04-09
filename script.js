@@ -346,16 +346,22 @@ function clearConversation() {
 }
 
 async function getAssistantReply(userText) {
-  const response = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: userText,
-      threadId: assistantThreadId,
-    }),
-  });
+  let response;
+
+  try {
+    response = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: userText,
+        threadId: assistantThreadId,
+      }),
+    });
+  } catch (error) {
+    throw new Error("Could not reach the Cloudflare Worker. Check the worker URL, deployment, and CORS settings.");
+  }
 
   if (!response.ok) {
     throw new Error("Request failed. Check your API URL and try again.");
