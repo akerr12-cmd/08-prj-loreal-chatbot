@@ -424,7 +424,6 @@ input {
   gap: 0.65rem;
   min-height: 0;
   overflow-y: auto;
-  scrollbar-gutter: stable;
   white-space: pre-line;
 }
 

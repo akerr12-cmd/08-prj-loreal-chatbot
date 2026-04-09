@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Assistant</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://use.typekit.net/hur4bjk.css">
   </head>
 
@@ -17,10 +17,10 @@
 
     <!-- Header -->
     <header class="site-header">
-      <img class="site-logo" src="img/loreal-logo.png" alt="L'Oréal logo" />
+      <img class="site-logo" src="img/loreal-logo.png" alt="L'Oréal logo">
       <h1 class="site-title">L’Oréal Beauty Advisor</h1>
       <p class="site-subtitle">Luxury beauty guidance, tailored to you</p>
-      <div class="brand-pills" aria-label="Beauty categories">
+      <div class="brand-pills" role="group" aria-label="Beauty categories">
         <span>Skin</span>
         <span>Hair</span>
         <span>Makeup</span>
@@ -41,7 +41,7 @@
           <p class="hero-text hero-text--mobile">
             Personalized beauty advice for products, steps, and routines.
           </p>
-          <div class="hero-fact" aria-live="polite" aria-label="L'Oréal beauty fact">
+          <div class="hero-fact" role="group" aria-live="polite" aria-label="L'Oréal beauty fact">
             <p class="hero-fact-tag">Beauty fact</p>
             <p id="beautyFactText" class="hero-fact-text"></p>
           </div>
@@ -60,9 +60,9 @@
         <div id="chatWindow" class="chat-window">
           <div id="chatMessages" class="chat-messages"></div>
 
-          <section id="suggestedProductsPanel" class="suggested-products" hidden>
+          <section id="suggestedProductsPanel" class="suggested-products" aria-labelledby="suggestedProductsTitle" hidden>
             <div class="suggested-products-header">
-              <p class="suggested-products-title">Suggested products</p>
+              <h3 id="suggestedProductsTitle" class="suggested-products-title">Suggested products</h3>
               <p class="suggested-products-note">These suggestions are based on the assistant response.</p>
             </div>
             <div id="suggestedProductsList" class="suggested-products-list"></div>
