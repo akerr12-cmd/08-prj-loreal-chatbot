@@ -453,7 +453,18 @@ async function getAssistantReply(requestMessages) {
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+
+  if (data.error && data.error.message) {
+    throw new Error(data.error.message);
+  }
+
+  const assistantText = data?.choices?.[0]?.message?.content;
+
+  if (!assistantText) {
+    throw new Error("No assistant response was returned.");
+  }
+
+  return assistantText;
 }
 
 // Restore existing chat history when available.

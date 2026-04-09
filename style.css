@@ -62,9 +62,8 @@ input {
   width: clamp(28rem, 64vw, 62rem);
   z-index: 0;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.38) 100%),
-    url("img/beauty-scientist-bg.png") left center / cover no-repeat;
+  opacity: 0.25;
+  background: url("img/beauty-scientist-bg1.png") left center / cover no-repeat;
 }
 
 .page-bg-art::after {
@@ -74,7 +73,7 @@ input {
   right: -7rem;
   bottom: 0;
   width: 16rem;
-  background: linear-gradient(to right, rgba(245, 238, 225, 0.44) 0%, rgba(245, 238, 225, 0) 100%);
+  background: linear-gradient(to right, rgba(245, 238, 225, 0.18) 0%, rgba(245, 238, 225, 0) 100%);
   filter: blur(14px);
 }
 
