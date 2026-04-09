@@ -54,15 +54,17 @@
 
         <p id="latestQuestion" class="latest-question" hidden></p>
 
-        <div id="chatWindow" class="chat-window"></div>
+        <div id="chatWindow" class="chat-window">
+          <div id="chatMessages" class="chat-messages"></div>
 
-        <section id="suggestedProductsPanel" class="suggested-products" hidden>
-          <div class="suggested-products-header">
-            <p class="suggested-products-title">Suggested products</p>
-            <p class="suggested-products-note">Official links appear when the assistant includes them.</p>
-          </div>
-          <div id="suggestedProductsList" class="suggested-products-list"></div>
-        </section>
+          <section id="suggestedProductsPanel" class="suggested-products" hidden>
+            <div class="suggested-products-header">
+              <p class="suggested-products-title">Suggested products</p>
+              <p class="suggested-products-note">Official links appear when the assistant includes them.</p>
+            </div>
+            <div id="suggestedProductsList" class="suggested-products-list"></div>
+          </section>
+        </div>
 
         <form id="chatForm" class="chat-form">
           <textarea

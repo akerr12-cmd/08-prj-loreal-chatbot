@@ -2,6 +2,7 @@
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
+const chatMessages = document.getElementById("chatMessages");
 const suggestedProductsPanel = document.getElementById("suggestedProductsPanel");
 const suggestedProductsList = document.getElementById("suggestedProductsList");
 const clearBtn = document.getElementById("clearBtn");
@@ -71,8 +72,8 @@ function addMessage(role, text) {
     msgElement.textContent = `L'Oréal Advisor: ${text}`;
   }
 
-  chatWindow.appendChild(msgElement);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
+  chatMessages.appendChild(msgElement);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function hideSuggestedProducts() {

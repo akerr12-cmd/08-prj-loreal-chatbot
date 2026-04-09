@@ -258,8 +258,7 @@ input {
   position: relative;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 9rem);
-  overflow: hidden;
+  min-height: 0;
 }
 
 .chat-panel-header {
@@ -326,15 +325,13 @@ input {
 }
 
 .chat-window {
-  flex: 1 1 auto;
-  min-height: 18rem;
-  max-height: none;
-  padding: 1rem;
-  overflow-y: auto;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  flex: 1 1 auto;
+  min-height: 18rem;
+  min-height: 0;
+  gap: 0.85rem;
+  padding: 1rem;
   border-radius: 1rem;
   background:
     radial-gradient(circle at top right, rgba(217, 91, 125, 0.08), transparent 34%),
@@ -342,11 +339,21 @@ input {
     linear-gradient(180deg, rgba(255, 252, 245, 0.96) 0%, rgba(255, 247, 234, 0.94) 100%);
   border: 1px solid rgba(200, 155, 60, 0.14);
   backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.chat-messages {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+  overflow-y: auto;
   white-space: pre-line;
 }
 
 .suggested-products {
-  margin-top: 0.85rem;
+  margin-top: 0;
   padding: 0.9rem;
   border-radius: 1rem;
   border: 1px solid rgba(200, 155, 60, 0.22);
@@ -594,10 +601,6 @@ input {
 }
 
 @media (max-width: 399px) {
-  .chatbox {
-    max-height: calc(100vh - 7.5rem);
-  }
-
   .chat-window {
     min-height: 14rem;
   }
@@ -640,10 +643,6 @@ input {
 
   .glass-panel {
     padding: 1.25rem;
-  }
-
-  .chatbox {
-    max-height: calc(100vh - 8.5rem);
   }
 
   .chat-window {
@@ -717,10 +716,6 @@ input {
     border-radius: 1.5rem;
   }
 
-  .chatbox {
-    max-height: calc(100vh - 9.5rem);
-  }
-
   .chat-window {
     min-height: 24rem;
     padding: 1.1rem;
@@ -735,10 +730,6 @@ input {
   .page-wrapper {
     width: min(100% - 3rem, 70rem);
     padding-bottom: 2rem;
-  }
-
-  .chatbox {
-    max-height: calc(100vh - 10rem);
   }
 
   .split-layout {
