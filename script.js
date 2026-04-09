@@ -11,9 +11,8 @@ const mobilePlaceholder = "Ask about products or routines";
 const STORAGE_KEY = "loreal-chat-state";
 const MAX_HISTORY_MESSAGES = 20;
 
-// Set your deployed Cloudflare Worker URL in secrets.js.
-// const OPENAI_API_URL = "https://your-worker-url.workers.dev";
-const WORKER_URL = typeof OPENAI_API_URL !== "undefined" ? OPENAI_API_URL : "";
+// Deployed Cloudflare Worker endpoint.
+const WORKER_URL = "https://lorealchatbot-worker.akerr12.workers.dev/";
 
 const userProfile = {
   name: "",
@@ -283,7 +282,7 @@ chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   if (!WORKER_URL) {
-    addMessage("assistant", "Please add OPENAI_API_URL in secrets.js first.");
+    addMessage("assistant", "Please add your Cloudflare Worker URL in script.js.");
     return;
   }
 
