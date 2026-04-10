@@ -2,6 +2,7 @@
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatMessages = document.getElementById("chatMessages");
+const discoverSuggestedList = document.getElementById("discoverSuggestedList");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const latestQuestion = document.getElementById("latestQuestion");
@@ -10,6 +11,7 @@ const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
 const STORAGE_KEY = "loreal-chat-state";
 const THREAD_STORAGE_KEY = "loreal-chat-thread-id";
+const LOREAL_SEARCH_BASE = "https://www.lorealparisusa.com/search?q=";
 
 // Deployed Cloudflare Worker endpoint.
 const WORKER_URL = "https://lorealchatbot-worker.akerr12.workers.dev/";
@@ -29,6 +31,176 @@ function updatePlaceholderText() {
   }
 
   userInput.placeholder = desktopPlaceholder;
+}
+
+function setDiscoverSuggestionMessage(message) {
+  if (!discoverSuggestedList) {
+    return;
+  }
+
+  discoverSuggestedList.innerHTML = "";
+  const item = document.createElement("li");
+  item.classList.add("discover-suggested-empty");
+  item.textContent = message;
+  discoverSuggestedList.appendChild(item);
+}
+
+function cleanSuggestedProductName(rawName) {
+  let name = String(rawName || "").trim();
+
+  name = name
+    .replace(/\*\*/g, "")
+    .replace(/^['"`\-\s]+|['"`\s]+$/g, "")
+    .trim();
+
+  if (name.includes(" - ")) {
+    name = name.split(" - ")[0].trim();
+  }
+
+  if (name.includes(" — ")) {
+    name = name.split(" — ")[0].trim();
+  }
+
+  if (name.includes(" – ")) {
+    name = name.split(" – ")[0].trim();
+  }
+
+  return name.replace(/\s{2,}/g, " ").trim();
+}
+
+function buildLorealProductUrl(productName) {
+  return `${LOREAL_SEARCH_BASE}${encodeURIComponent(productName)}`;
+}
+
+function normalizeSuggestedProducts(products) {
+  if (!Array.isArray(products)) {
+    return [];
+  }
+
+  const normalized = [];
+  const seen = new Set();
+
+  for (let i = 0; i < products.length; i += 1) {
+    const product = products[i] || {};
+    const productName = typeof product === "string"
+      ? cleanSuggestedProductName(product)
+      : cleanSuggestedProductName(product.name || "");
+
+    if (!productName) {
+      continue;
+    }
+
+    const dedupeKey = productName.toLowerCase();
+    if (seen.has(dedupeKey)) {
+      continue;
+    }
+
+    seen.add(dedupeKey);
+    normalized.push({
+      name: productName,
+      url: buildLorealProductUrl(productName),
+    });
+
+    if (normalized.length >= 3) {
+      break;
+    }
+  }
+
+  return normalized;
+}
+
+function parseSuggestedProductsFromText(text) {
+  const normalizedText = String(text || "").replace(/\r\n/g, "\n");
+  const sectionMatch = normalizedText.match(/(?:^|\n)\s*(?:suggested|recommended)\s+products?\s*:?\s*\n([\s\S]*)/i);
+
+  if (!sectionMatch || !sectionMatch[1]) {
+    return [];
+  }
+
+  const lines = sectionMatch[1].split("\n");
+  const products = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (!line && products.length > 0) {
+      break;
+    }
+
+    const bulletMatch = line.match(/^(?:[\-•*]|\d+\.)\s+(.+)$/);
+    if (!bulletMatch || !bulletMatch[1]) {
+      if (products.length > 0) {
+        break;
+      }
+      continue;
+    }
+
+    const candidate = bulletMatch[1]
+      .replace(/\((?:https?:\/\/[^\s)]+)\)$/i, "")
+      .replace(/\|\s*https?:\/\/\S+$/i, "")
+      .replace(/https?:\/\/\S+/gi, "")
+      .trim();
+
+    products.push({ name: candidate });
+
+    if (products.length >= 3) {
+      break;
+    }
+  }
+
+  return normalizeSuggestedProducts(products);
+}
+
+function parseInlineProductMentions(text) {
+  const normalizedText = String(text || "").replace(/\r\n/g, "\n");
+  const matches = [];
+  const patterns = [
+    /(?:recommend|suggest|try)\s+([A-Z][A-Za-z0-9'\-\s]{3,80})/g,
+    /([A-Z][A-Za-z0-9'\-\s]{3,80})\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)/g,
+  ];
+
+  for (let i = 0; i < patterns.length; i += 1) {
+    let match;
+
+    while ((match = patterns[i].exec(normalizedText)) !== null) {
+      const candidate = String(match[1] || "")
+        .replace(/[.,;!?]+$/g, "")
+        .trim();
+
+      if (candidate) {
+        matches.push({ name: candidate });
+      }
+    }
+  }
+
+  return normalizeSuggestedProducts(matches);
+}
+
+function renderDiscoverSuggestedProducts(products) {
+  if (!discoverSuggestedList) {
+    return;
+  }
+
+  const safeProducts = normalizeSuggestedProducts(products);
+  discoverSuggestedList.innerHTML = "";
+
+  if (!safeProducts.length) {
+    setDiscoverSuggestionMessage("No products suggested yet. Ask a product question.");
+    return;
+  }
+
+  for (let i = 0; i < safeProducts.length; i += 1) {
+    const product = safeProducts[i];
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+
+    link.href = product.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = product.name;
+
+    item.appendChild(link);
+    discoverSuggestedList.appendChild(item);
+  }
 }
 
 function addMessage(role, text) {
@@ -78,8 +250,18 @@ function addAssistantResponse(payload) {
     : isStructuredPayload && typeof payload.content === "string"
       ? payload.content
       : "";
+  const suggestedProducts = isStructuredPayload && Array.isArray(payload.products)
+    ? normalizeSuggestedProducts(payload.products)
+    : [];
+  const fallbackSectionProducts = suggestedProducts.length
+    ? suggestedProducts
+    : parseSuggestedProductsFromText(assistantText);
+  const finalSuggestedProducts = fallbackSectionProducts.length
+    ? fallbackSectionProducts
+    : parseInlineProductMentions(assistantText);
   const cleanedDisplayText = stripProductsFromAssistantText(assistantText);
 
+  renderDiscoverSuggestedProducts(finalSuggestedProducts);
   addMessage("assistant", (cleanedDisplayText || assistantText || "").trim());
 }
 
@@ -281,6 +463,7 @@ async function getAssistantReply(userText) {
   }
 
   const assistantText = data?.content;
+  const assistantProducts = Array.isArray(data?.products) ? data.products : [];
 
   if (!assistantText) {
     throw new Error("No assistant response was returned.");
@@ -288,6 +471,7 @@ async function getAssistantReply(userText) {
 
   return {
     content: assistantText,
+    products: assistantProducts,
   };
 }
 
@@ -301,6 +485,9 @@ if (!hasLoadedHistory) {
 }
 
 setLatestQuestion(getLastUserQuestion());
+if (discoverSuggestedList) {
+  setDiscoverSuggestionMessage("Ask a product question to see suggestions.");
+}
 
 updatePlaceholderText();
 

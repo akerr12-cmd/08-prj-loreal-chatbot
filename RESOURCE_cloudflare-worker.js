@@ -92,10 +92,10 @@ export default {
             'Treat each new user message as a continuation of the same conversation unless the user clearly starts a new topic.',
             'If the user is answering your previous question, do not restart; continue from the prior turn naturally.',
             'Only answer questions related to L\'Oreal products, ingredients, routines, beauty concerns, or usage guidance.',
-            'If the user asks an unrelated question, set answer to exactly: "I can only help with L\'Oreal products, ingredients, and beauty routines.".',
+            'If the user asks an unrelated question, set answer to exactly: "I can only help with L\'Oreal products, ingredients, and beauty routines."',
             'Return a valid JSON object with this shape: {"answer":"string","products":[{"name":"string"}]}.',
             'The answer field must contain the conversational reply for chat.',
-            'The products field is optional. If provided, include up to 3 L\'Oreal product names. Do not include links or URLs.'
+            'When recommending products, include them in products as up to 3 L\'Oreal product names. Do not include links or URLs. If no product is recommended, return an empty products array.'
           ].join(' '),
         }),
       });
@@ -314,6 +314,31 @@ export default {
       return normalizeProducts(products);
     }
 
+    function extractInlineProductMentions(text) {
+      const normalized = String(text || '').replace(/\r\n/g, '\n');
+      const candidates = [];
+      const patterns = [
+        /(?:recommend|suggest|try)\s+([A-Z][A-Za-z0-9'\-\s]{3,80})/g,
+        /([A-Z][A-Za-z0-9'\-\s]{3,80})\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)/g,
+      ];
+
+      for (let i = 0; i < patterns.length; i += 1) {
+        let match;
+
+        while ((match = patterns[i].exec(normalized)) !== null) {
+          const candidateName = String(match[1] || '')
+            .replace(/[.,;!?]+$/g, '')
+            .trim();
+
+          if (candidateName) {
+            candidates.push({ name: candidateName });
+          }
+        }
+      }
+
+      return normalizeProducts(candidates);
+    }
+
     function stripSuggestedProductsBlock(text) {
       const normalized = String(text || '').replace(/\r\n/g, '\n');
       const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
@@ -374,7 +399,9 @@ export default {
       }
 
       const cleanAnswer = stripSuggestedProductsBlock(raw);
-      return { answer: cleanAnswer || raw, products: [] };
+      const sectionProducts = extractProductsFromText(raw);
+      const inlineProducts = sectionProducts.length ? sectionProducts : extractInlineProductMentions(raw);
+      return { answer: cleanAnswer || raw, products: inlineProducts };
     }
 
     let activeThreadId = threadId;
