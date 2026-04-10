@@ -340,11 +340,22 @@ export default {
 
       for (let i = 0; i < candidates.length; i += 1) {
         try {
-          const parsed = JSON.parse(candidates[i]);
+          const candidateText = candidates[i];
+          const parsed = JSON.parse(candidateText);
           const answer = typeof parsed.answer === 'string' ? parsed.answer.trim() : '';
           const products = normalizeProducts(parsed.products);
-          const fallbackProducts = products.length ? products : extractProductsFromText(answer || raw);
-          const cleanAnswer = stripSuggestedProductsBlock(answer || raw);
+
+          let textSource = answer;
+
+          if (!textSource) {
+            const rawWithoutCandidate = raw.includes(candidateText)
+              ? raw.replace(candidateText, '').trim()
+              : raw;
+            textSource = rawWithoutCandidate;
+          }
+
+          const fallbackProducts = products.length ? products : extractProductsFromText(textSource || raw);
+          const cleanAnswer = stripSuggestedProductsBlock(textSource || raw);
 
           if (cleanAnswer || fallbackProducts.length) {
             return { answer: cleanAnswer || answer || raw, products: fallbackProducts };

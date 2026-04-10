@@ -289,6 +289,86 @@ function parseSuggestedProducts(text) {
     products: products.slice(0, 3),
   };
 }
+
+function stripProductsFromAssistantText(text) {
+  const normalized = String(text || "").replace(/\r\n/g, "\n");
+  const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
+  const headingMatch = normalized.match(headingRegex);
+
+  if (headingMatch) {
+    const headingIndex = normalized.indexOf(headingMatch[0]);
+    return normalized.slice(0, headingIndex).trim();
+  }
+
+  return normalized
+    .split("\n")
+    .filter((line) => !/^(?:\s*(?:[\-•*]|\d+\.)\s+.*https?:\/\/\S+.*)$/i.test(line))
+    .join("\n")
+    .trim();
+}
+
+
+function buildProductSummaryText(products) {
+  const names = (products || [])
+    .map((product) => cleanSuggestedProductName(product.name || ""))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (!names.length) {
+    return "";
+  }
+
+  return `Suggested products: ${names.join(", ")}.`;
+}
+
+function buildInlineProductNamesText(products) {
+  const names = (products || [])
+    .map((product) => cleanSuggestedProductName(product.name || ""))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (!names.length) {
+    return "";
+  }
+
+  return `${names.join(", ")}.`;
+}
+
+function injectProductSummaryIntoResponse(baseText, products) {
+  const text = String(baseText || "").trim();
+  const summary = buildProductSummaryText(products);
+
+  if (!summary) {
+    return text;
+  }
+
+  if (!text) {
+    return summary;
+  }
+
+  if (/^\s*Suggested products:/im.test(text)) {
+    return text;
+  }
+
+  const inlineNames = buildInlineProductNamesText(products);
+  const lines = text.split("\n");
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = (lines[i] || "").trim();
+    const isLeadInLine = /(recommend|suggest|option)s?/i.test(line) && /:\s*$/.test(line);
+
+    if (!isLeadInLine) {
+      continue;
+    }
+
+    const insertLine = inlineNames ? `Suggested products: ${inlineNames}` : summary;
+    lines.splice(i + 1, 0, insertLine);
+    return lines.join("\n").trim();
+  }
+
+  return `${text}\n\n${summary}`;
+}
+
 function addAssistantResponse(payload) {
   const isStructuredPayload = payload && typeof payload === "object" && !Array.isArray(payload);
   const assistantText = typeof payload === "string"
@@ -301,14 +381,29 @@ function addAssistantResponse(payload) {
     ? payload.products.filter((product) => product && product.name && product.url)
     : [];
 
+  const fallbackParsed = parseSuggestedProducts(assistantText);
+  const finalProducts = structuredProducts.length ? structuredProducts : fallbackParsed.products;
+  const cleanedDisplayText = stripProductsFromAssistantText(assistantText);
+
   const parsedResponse = isStructuredPayload
     ? {
-        displayText: (assistantText || "").trim(),
-        products: structuredProducts,
+        displayText: (cleanedDisplayText || fallbackParsed.displayText || assistantText || "").trim(),
+        products: finalProducts,
       }
-    : parseSuggestedProducts(assistantText);
+    : {
+        displayText: (cleanedDisplayText || fallbackParsed.displayText || assistantText || "").trim(),
+        products: fallbackParsed.products,
+      };
 
   renderDiscoverSuggestedProducts(parsedResponse.products);
+
+  // Build summary from the running Discover list so chat can still show recommendations
+  // even when the current turn doesn't return a fresh, parseable products block.
+  parsedResponse.displayText = injectProductSummaryIntoResponse(
+    parsedResponse.displayText,
+    latestSuggestedProducts
+  );
+
   setProductsDebug(parsedResponse.products.length);
   addMessage("assistant", parsedResponse.displayText);
 }
