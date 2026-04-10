@@ -2,7 +2,7 @@ export default {
   async fetch(request, env) {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Content-Type': 'application/json'
     };
@@ -11,12 +11,27 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    if (request.method !== 'POST') {
+      return new Response(JSON.stringify({ error: { message: 'Method not allowed. Use POST for chat requests.' } }), { status: 405, headers: corsHeaders });
+    }
+
     const apiKey = env.OPENAI_API_KEY;
     const assistantId = env.ASSISTANT_ID;
     const apiBase = 'https://api.openai.com/v1';
-    const requestBody = await request.json();
-    const userMessage = (requestBody.message || '').trim();
-    const threadId = requestBody.threadId || '';
+
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch (error) {
+      return new Response(JSON.stringify({ error: { message: 'Invalid or empty JSON body. Send a JSON object with a message field.' } }), { status: 400, headers: corsHeaders });
+    }
+
+    if (!requestBody || typeof requestBody !== 'object') {
+      return new Response(JSON.stringify({ error: { message: 'Invalid request body. Expected a JSON object.' } }), { status: 400, headers: corsHeaders });
+    }
+
+    const userMessage = typeof requestBody.message === 'string' ? requestBody.message.trim() : '';
+    const threadId = typeof requestBody.threadId === 'string' ? requestBody.threadId : '';
 
     if (!apiKey || !assistantId) {
       return new Response(JSON.stringify({ error: { message: 'Missing OPENAI_API_KEY or ASSISTANT_ID in Cloudflare Worker secrets.' } }), { status: 500, headers: corsHeaders });
@@ -77,10 +92,10 @@ export default {
             'Treat each new user message as a continuation of the same conversation unless the user clearly starts a new topic.',
             'If the user is answering your previous question, do not restart; continue from the prior turn naturally.',
             'Only answer questions related to L\'Oreal products, ingredients, routines, beauty concerns, or usage guidance.',
-            'If the user asks an unrelated question, set answer to exactly: "I can only help with L\'Oreal products, ingredients, and beauty routines." and return an empty products array.',
-            'Return a valid JSON object only with this exact shape: {"answer":"string","products":[{"name":"string","url":"https://..."}]}.',
+            'If the user asks an unrelated question, set answer to exactly: "I can only help with L\'Oreal products, ingredients, and beauty routines.".',
+            'Return a valid JSON object with this shape: {"answer":"string","products":[{"name":"string"}]}.',
             'The answer field must contain the conversational reply for chat.',
-            'The products field must contain up to 3 real L\'Oreal product links. If none, return an empty array.'
+            'The products field is optional. If provided, include up to 3 L\'Oreal product names. Do not include links or URLs.'
           ].join(' '),
         }),
       });
@@ -152,21 +167,25 @@ export default {
       }
 
       const cleaned = [];
+      const seen = new Set();
 
       for (let i = 0; i < products.length; i += 1) {
         const item = products[i] || {};
-        const name = String(item.name || '').trim();
-        const url = String(item.url || '').trim();
+        const name = typeof item === 'string'
+          ? cleanProductName(item)
+          : cleanProductName(item.name || '');
 
-        if (!name || !url) {
+        if (!name) {
           continue;
         }
 
-        if (!/^https?:\/\//i.test(url)) {
+        const dedupeKey = name.toLowerCase();
+        if (seen.has(dedupeKey)) {
           continue;
         }
 
-        cleaned.push({ name, url });
+        seen.add(dedupeKey);
+        cleaned.push({ name });
 
         if (cleaned.length >= 3) {
           break;
@@ -174,19 +193,6 @@ export default {
       }
 
       return cleaned;
-    }
-
-    function isLikelyLorealUrl(url) {
-      if (!url) {
-        return false;
-      }
-
-      try {
-        const parsed = new URL(url);
-        return parsed.hostname.toLowerCase().includes('loreal');
-      } catch (error) {
-        return false;
-      }
     }
 
     function cleanProductName(rawName) {
@@ -227,6 +233,7 @@ export default {
       const section = headingMatch ? headingMatch[1] : normalized;
       const lines = section.split('\n');
       const products = [];
+      const seen = new Set();
       const bulletRegex = /^(?:[\-•*]|\d+\.)\s+/;
 
       for (let i = 0; i < lines.length; i += 1) {
@@ -244,34 +251,29 @@ export default {
           break;
         }
 
-        const markdownLinkMatch = line.match(/^(?:[\-•*]|\d+\.)\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
-        const pipeMatch = line.match(/^(?:[\-•*]|\d+\.)\s+([^|]+?)\s*\|\s*(https?:\/\/\S+)$/);
-        const plainUrlMatch = line.match(/^(?:[\-•*]|\d+\.)\s+(.+?)\s+(https?:\/\/\S+)$/);
+        const itemText = line.replace(/^(?:[\-•*]|\d+\.)\s+/, '').trim();
+        const markdownLinkMatch = itemText.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
 
-        const rawName = markdownLinkMatch
-          ? markdownLinkMatch[1]
-          : pipeMatch
-            ? pipeMatch[1]
-            : plainUrlMatch
-              ? plainUrlMatch[1]
-              : '';
+        let rawName = markdownLinkMatch ? markdownLinkMatch[1] : itemText;
+        rawName = rawName
+          .replace(/\((?:https?:\/\/[^\s)]+)\)$/i, '')
+          .replace(/\|\s*https?:\/\/\S+$/i, '')
+          .replace(/https?:\/\/\S+/gi, '')
+          .trim();
 
-        const rawUrl = markdownLinkMatch
-          ? markdownLinkMatch[2]
-          : pipeMatch
-            ? pipeMatch[2]
-            : plainUrlMatch
-              ? plainUrlMatch[2]
-              : '';
-
-        const url = String(rawUrl).replace(/[\])\].,;!?]+$/g, '').trim();
         const name = cleanProductName(rawName);
 
-        if (!name || !url || !isLikelyLorealUrl(url)) {
+        if (!name) {
           continue;
         }
 
-        products.push({ name, url });
+        const dedupeKey = name.toLowerCase();
+        if (seen.has(dedupeKey)) {
+          continue;
+        }
+
+        seen.add(dedupeKey);
+        products.push({ name });
 
         if (products.length >= 3) {
           break;
@@ -279,18 +281,29 @@ export default {
       }
 
       if (!products.length) {
-        const fallbackRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+([^\n|]+?)\s*(?:\|\s*(https?:\/\/\S+)|\((https?:\/\/\S+)\)|\s+(https?:\/\/\S+))\s*$/gim;
+        const fallbackRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+(.+?)\s*$/gim;
         let fallbackMatch;
 
         while ((fallbackMatch = fallbackRegex.exec(normalized)) !== null) {
-          const name = cleanProductName(fallbackMatch[1]);
-          const url = String(fallbackMatch[2] || fallbackMatch[3] || fallbackMatch[4] || '').replace(/[\])\].,;!?]+$/g, '').trim();
+          const candidate = String(fallbackMatch[1] || '')
+            .replace(/\((?:https?:\/\/[^\s)]+)\)$/i, '')
+            .replace(/\|\s*https?:\/\/\S+$/i, '')
+            .replace(/https?:\/\/\S+/gi, '')
+            .trim();
 
-          if (!name || !url || !isLikelyLorealUrl(url)) {
+          const name = cleanProductName(candidate);
+
+          if (!name) {
             continue;
           }
 
-          products.push({ name, url });
+          const dedupeKey = name.toLowerCase();
+          if (seen.has(dedupeKey)) {
+            continue;
+          }
+
+          seen.add(dedupeKey);
+          products.push({ name });
 
           if (products.length >= 3) {
             break;
@@ -311,11 +324,7 @@ export default {
         return normalized.slice(0, headingIndex).trim();
       }
 
-      return normalized
-        .split('\n')
-        .filter((line) => !/^(?:\s*(?:[\-•*]|\d+\.)\s+.*https?:\/\/\S+.*)$/i.test(line))
-        .join('\n')
-        .trim();
+      return normalized.trim();
     }
 
     function extractStructuredPayload(text) {
@@ -354,20 +363,18 @@ export default {
             textSource = rawWithoutCandidate;
           }
 
-          const fallbackProducts = products.length ? products : extractProductsFromText(textSource || raw);
           const cleanAnswer = stripSuggestedProductsBlock(textSource || raw);
 
-          if (cleanAnswer || fallbackProducts.length) {
-            return { answer: cleanAnswer || answer || raw, products: fallbackProducts };
+          if (cleanAnswer || products.length) {
+            return { answer: cleanAnswer || answer || raw, products };
           }
         } catch (error) {
           // Keep trying other candidate JSON snippets.
         }
       }
 
-      const fallbackProducts = extractProductsFromText(raw);
       const cleanAnswer = stripSuggestedProductsBlock(raw);
-      return { answer: cleanAnswer || raw, products: fallbackProducts };
+      return { answer: cleanAnswer || raw, products: [] };
     }
 
     let activeThreadId = threadId;

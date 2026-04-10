@@ -2,9 +2,6 @@
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatMessages = document.getElementById("chatMessages");
-const discoverSuggestedList = document.getElementById("discoverSuggestedList");
-const discoverProductsDebug = document.getElementById("discoverProductsDebug");
-const downloadProductsBtn = document.getElementById("downloadProductsBtn");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const latestQuestion = document.getElementById("latestQuestion");
@@ -22,7 +19,6 @@ const userProfile = {
 };
 
 let assistantThreadId = localStorage.getItem(THREAD_STORAGE_KEY) || "";
-let latestSuggestedProducts = [];
 const messages = [
 ];
 
@@ -33,28 +29,6 @@ function updatePlaceholderText() {
   }
 
   userInput.placeholder = desktopPlaceholder;
-}
-
-function setDiscoverSuggestionMessage(message) {
-  if (!discoverSuggestedList) {
-    return;
-  }
-
-  discoverSuggestedList.innerHTML = "";
-  const emptyItem = document.createElement("li");
-  emptyItem.classList.add("discover-suggested-empty");
-  emptyItem.textContent = message;
-  discoverSuggestedList.appendChild(emptyItem);
-}
-
-function setProductsDebug(count, prefix = "Parsed") {
-  if (!discoverProductsDebug) {
-    return;
-  }
-
-  const safeCount = Number.isFinite(count) ? Math.max(0, count) : 0;
-  const label = safeCount === 1 ? "product" : "products";
-  discoverProductsDebug.textContent = `${prefix} ${safeCount} ${label} from latest reply.`;
 }
 
 function addMessage(role, text) {
@@ -84,212 +58,6 @@ function saveAssistantThreadId(threadId) {
   localStorage.removeItem(THREAD_STORAGE_KEY);
 }
 
-function renderDiscoverSuggestedProducts(products) {
-  if (!discoverSuggestedList) {
-    return;
-  }
-
-  const linkedProducts = products.filter((product) => product.url);
-
-  if (!linkedProducts.length) {
-    if (!latestSuggestedProducts.length) {
-      setDiscoverSuggestionMessage("No products suggested yet. Ask about a routine or concern.");
-    }
-    return;
-  }
-
-  const mergedProducts = latestSuggestedProducts.slice();
-
-  for (let i = 0; i < linkedProducts.length; i += 1) {
-    const incoming = {
-      name: cleanSuggestedProductName(linkedProducts[i].name),
-      url: linkedProducts[i].url,
-    };
-
-    if (!incoming.name) {
-      continue;
-    }
-
-    const alreadyExists = mergedProducts.some((existing) => {
-      const sameUrl = (existing.url || "").trim().toLowerCase() === (incoming.url || "").trim().toLowerCase();
-      const sameName = cleanSuggestedProductName(existing.name || "") === incoming.name;
-      return sameUrl || sameName;
-    });
-
-    if (!alreadyExists) {
-      mergedProducts.push(incoming);
-    }
-  }
-
-  latestSuggestedProducts = mergedProducts;
-  discoverSuggestedList.innerHTML = "";
-
-  for (let i = 0; i < latestSuggestedProducts.length; i += 1) {
-    const product = latestSuggestedProducts[i];
-    const cleanedName = cleanSuggestedProductName(product.name);
-
-    if (!cleanedName) {
-      continue;
-    }
-
-    const item = document.createElement("li");
-
-    const link = document.createElement("a");
-    link.href = product.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = cleanedName;
-    item.appendChild(link);
-
-    discoverSuggestedList.appendChild(item);
-  }
-}
-
-function isLikelyLorealProductUrl(url) {
-  if (!url) {
-    return false;
-  }
-
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.toLowerCase().includes("loreal");
-  } catch (error) {
-    return false;
-  }
-}
-
-function cleanSuggestedProductName(rawName) {
-  if (!rawName) {
-    return "";
-  }
-
-  let name = rawName
-    .replace(/\*\*/g, "")
-    .replace(/^['"`\-\s]+|['"`\s]+$/g, "")
-    .trim();
-
-  if (name.includes(" - ")) {
-    name = name.split(" - ")[0].trim();
-  }
-
-  if (name.includes(": ")) {
-    const parts = name.split(": ");
-    const tail = parts.slice(1).join(": ");
-    if (/\b(although|this|it|which|that|helps?|provides?|leaves?)\b/i.test(tail) || tail.length > 28) {
-      name = parts[0].trim();
-    }
-  }
-
-  if (name.includes(". ")) {
-    const firstSentence = name.split(". ")[0].trim();
-    if (firstSentence.length >= 8) {
-      name = firstSentence;
-    }
-  }
-
-  if (name.includes(" — ")) {
-    name = name.split(" — ")[0].trim();
-  }
-
-  if (name.includes(" – ")) {
-    name = name.split(" – ")[0].trim();
-  }
-
-  name = name.replace(/\[[^\]]+\]\s*$/g, "").trim();
-
-  const wrappedBracketMatch = name.match(/^\[([^\]]+)\]$/);
-  if (wrappedBracketMatch && wrappedBracketMatch[1]) {
-    name = wrappedBracketMatch[1].trim();
-  }
-
-  return name.replace(/\s{2,}/g, " ").trim();
-}
-
-function parseSuggestedProducts(text) {
-  const normalizedText = text.replace(/\r\n/g, "\n");
-  const sectionRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
-  const match = normalizedText.match(sectionRegex);
-
-  const headingIndex = match ? normalizedText.indexOf(match[0]) : -1;
-  const displayTextBeforeProducts = headingIndex >= 0 ? normalizedText.slice(0, headingIndex).trim() : normalizedText.trim();
-  const section = match ? match[1] : normalizedText;
-  const lines = section.split("\n");
-  const products = [];
-  const listItemRegex = /^(?:[\-•*]|\d+\.)\s+/;
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i].trim();
-
-    if (!line && products.length > 0) {
-      break;
-    }
-
-    if (!line) {
-      continue;
-    }
-
-    if (products.length > 0 && !listItemRegex.test(line)) {
-      break;
-    }
-
-    const markdownLinkMatch = line.match(/^(?:[\-•*]|\d+\.)\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
-    const pipeMatch = line.match(/^(?:[\-•*]|\d+\.)\s+([^|]+?)(?:\s*\|\s*(https?:\/\/\S+))?$/);
-    const plainUrlMatch = line.match(/^(?:[\-•*]|\d+\.)\s+(.+?)\s+(https?:\/\/\S+)$/);
-
-    const name = markdownLinkMatch
-      ? markdownLinkMatch[1].trim()
-      : pipeMatch
-        ? pipeMatch[1].trim()
-        : plainUrlMatch
-          ? plainUrlMatch[1].trim()
-          : "";
-
-    const url = markdownLinkMatch
-      ? markdownLinkMatch[2].trim()
-      : pipeMatch && pipeMatch[2]
-        ? pipeMatch[2].trim()
-        : plainUrlMatch
-          ? plainUrlMatch[2].trim()
-          : "";
-
-      const cleanedName = cleanSuggestedProductName(name);
-
-      if (cleanedName && url && isLikelyLorealProductUrl(url)) {
-        products.push({ name: cleanedName, url });
-    }
-  }
-
-    if (!products.length) {
-      const fallbackListRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+([^\n|]+?)\s*(?:\|\s*(https?:\/\/\S+)|\((https?:\/\/\S+)\)|\s+(https?:\/\/\S+))\s*$/gim;
-      let fallbackMatch;
-
-      while ((fallbackMatch = fallbackListRegex.exec(normalizedText)) !== null) {
-        const fallbackName = cleanSuggestedProductName((fallbackMatch[1] || "").trim());
-        const fallbackUrl = (fallbackMatch[2] || fallbackMatch[3] || fallbackMatch[4] || "").trim();
-
-        if (fallbackName && fallbackUrl && isLikelyLorealProductUrl(fallbackUrl)) {
-          products.push({ name: fallbackName, url: fallbackUrl });
-        }
-
-        if (products.length >= 3) {
-          break;
-      }
-    }
-    }
-
-    const strippedDisplayText = normalizedText
-      .split("\n")
-      .filter((line) => !/^(?:\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\b.*)$/i.test(line))
-      .filter((line) => !/^(?:\s*(?:[\-•*]|\d+\.)\s+.*(?:https?:\/\/\S+).*)$/i.test(line))
-      .join("\n")
-      .trim();
-
-  return {
-      displayText: (displayTextBeforeProducts || strippedDisplayText || text).trim(),
-    products: products.slice(0, 3),
-  };
-}
-
 function stripProductsFromAssistantText(text) {
   const normalized = String(text || "").replace(/\r\n/g, "\n");
   const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
@@ -300,73 +68,7 @@ function stripProductsFromAssistantText(text) {
     return normalized.slice(0, headingIndex).trim();
   }
 
-  return normalized
-    .split("\n")
-    .filter((line) => !/^(?:\s*(?:[\-•*]|\d+\.)\s+.*https?:\/\/\S+.*)$/i.test(line))
-    .join("\n")
-    .trim();
-}
-
-
-function buildProductSummaryText(products) {
-  const names = (products || [])
-    .map((product) => cleanSuggestedProductName(product.name || ""))
-    .filter(Boolean)
-    .slice(0, 3);
-
-  if (!names.length) {
-    return "";
-  }
-
-  return `Suggested products: ${names.join(", ")}.`;
-}
-
-function buildInlineProductNamesText(products) {
-  const names = (products || [])
-    .map((product) => cleanSuggestedProductName(product.name || ""))
-    .filter(Boolean)
-    .slice(0, 3);
-
-  if (!names.length) {
-    return "";
-  }
-
-  return `${names.join(", ")}.`;
-}
-
-function injectProductSummaryIntoResponse(baseText, products) {
-  const text = String(baseText || "").trim();
-  const summary = buildProductSummaryText(products);
-
-  if (!summary) {
-    return text;
-  }
-
-  if (!text) {
-    return summary;
-  }
-
-  if (/^\s*Suggested products:/im.test(text)) {
-    return text;
-  }
-
-  const inlineNames = buildInlineProductNamesText(products);
-  const lines = text.split("\n");
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = (lines[i] || "").trim();
-    const isLeadInLine = /(recommend|suggest|option)s?/i.test(line) && /:\s*$/.test(line);
-
-    if (!isLeadInLine) {
-      continue;
-    }
-
-    const insertLine = inlineNames ? `Suggested products: ${inlineNames}` : summary;
-    lines.splice(i + 1, 0, insertLine);
-    return lines.join("\n").trim();
-  }
-
-  return `${text}\n\n${summary}`;
+  return normalized.trim();
 }
 
 function addAssistantResponse(payload) {
@@ -376,36 +78,9 @@ function addAssistantResponse(payload) {
     : isStructuredPayload && typeof payload.content === "string"
       ? payload.content
       : "";
-
-  const structuredProducts = isStructuredPayload && Array.isArray(payload.products)
-    ? payload.products.filter((product) => product && product.name && product.url)
-    : [];
-
-  const fallbackParsed = parseSuggestedProducts(assistantText);
-  const finalProducts = structuredProducts.length ? structuredProducts : fallbackParsed.products;
   const cleanedDisplayText = stripProductsFromAssistantText(assistantText);
 
-  const parsedResponse = isStructuredPayload
-    ? {
-        displayText: (cleanedDisplayText || fallbackParsed.displayText || assistantText || "").trim(),
-        products: finalProducts,
-      }
-    : {
-        displayText: (cleanedDisplayText || fallbackParsed.displayText || assistantText || "").trim(),
-        products: fallbackParsed.products,
-      };
-
-  renderDiscoverSuggestedProducts(parsedResponse.products);
-
-  // Build summary from the running Discover list so chat can still show recommendations
-  // even when the current turn doesn't return a fresh, parseable products block.
-  parsedResponse.displayText = injectProductSummaryIntoResponse(
-    parsedResponse.displayText,
-    latestSuggestedProducts
-  );
-
-  setProductsDebug(parsedResponse.products.length);
-  addMessage("assistant", parsedResponse.displayText);
+  addMessage("assistant", (cleanedDisplayText || assistantText || "").trim());
 }
 
 function setLatestQuestion(text) {
@@ -551,46 +226,6 @@ function downloadChatHistory() {
   URL.revokeObjectURL(objectUrl);
 }
 
-function getSuggestedProductLinesForDownload() {
-  if (!latestSuggestedProducts.length) {
-    return ["L'Oreal Suggested Products", "", "No suggested products available yet."];
-  }
-
-  const lines = [
-    "L'Oreal Suggested Products",
-    `Exported: ${new Date().toLocaleString()}`,
-    "",
-  ];
-
-  for (let i = 0; i < latestSuggestedProducts.length; i += 1) {
-    const product = latestSuggestedProducts[i];
-    const itemNumber = i + 1;
-
-    if (product.url) {
-      lines.push(`${itemNumber}. ${product.name} - ${product.url}`);
-    } else {
-      lines.push(`${itemNumber}. ${product.name}`);
-    }
-  }
-
-  return lines;
-}
-
-function downloadSuggestedProducts() {
-  const lines = getSuggestedProductLinesForDownload();
-  const fileText = lines.join("\n");
-  const fileBlob = new Blob([fileText], { type: "text/plain" });
-  const objectUrl = URL.createObjectURL(fileBlob);
-  const downloadLink = document.createElement("a");
-
-  downloadLink.href = objectUrl;
-  downloadLink.download = `loreal-suggested-products-${new Date().toISOString().slice(0, 10)}.txt`;
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  document.body.removeChild(downloadLink);
-  URL.revokeObjectURL(objectUrl);
-}
-
 function clearConversation() {
   userProfile.name = "";
   localStorage.removeItem(STORAGE_KEY);
@@ -601,6 +236,11 @@ function clearConversation() {
 
 async function getAssistantReply(userText) {
   let response;
+  let data;
+
+  if (!userText || !userText.trim()) {
+    throw new Error("Cannot send an empty message.");
+  }
 
   try {
     response = await fetch(WORKER_URL, {
@@ -617,11 +257,20 @@ async function getAssistantReply(userText) {
     throw new Error("Could not reach the Cloudflare Worker. Check the worker URL, deployment, and CORS settings.");
   }
 
-  if (!response.ok) {
-    throw new Error("Request failed. Check your API URL and try again.");
+  try {
+    data = await response.json();
+  } catch (error) {
+    if (!response.ok) {
+      throw new Error("Request failed. Check your API URL and try again.");
+    }
+
+    throw new Error("The Cloudflare Worker returned an invalid JSON response.");
   }
 
-  const data = await response.json();
+  if (!response.ok) {
+    const errorMessage = data?.error?.message || "Request failed. Check your API URL and try again.";
+    throw new Error(errorMessage);
+  }
 
   if (data.error && data.error.message) {
     throw new Error(data.error.message);
@@ -632,7 +281,6 @@ async function getAssistantReply(userText) {
   }
 
   const assistantText = data?.content;
-  const assistantProducts = Array.isArray(data?.products) ? data.products : [];
 
   if (!assistantText) {
     throw new Error("No assistant response was returned.");
@@ -640,7 +288,6 @@ async function getAssistantReply(userText) {
 
   return {
     content: assistantText,
-    products: assistantProducts,
   };
 }
 
@@ -654,10 +301,6 @@ if (!hasLoadedHistory) {
 }
 
 setLatestQuestion(getLastUserQuestion());
-if (discoverSuggestedList && discoverSuggestedList.children.length === 0) {
-  setDiscoverSuggestionMessage("Ask a question to see product suggestions.");
-}
-setProductsDebug(latestSuggestedProducts.length);
 
 updatePlaceholderText();
 
@@ -679,12 +322,6 @@ downloadBtn.addEventListener("click", () => {
   downloadChatHistory();
 });
 
-if (downloadProductsBtn) {
-  downloadProductsBtn.addEventListener("click", () => {
-    downloadSuggestedProducts();
-  });
-}
-
 /* Handle form submit */
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -698,7 +335,6 @@ chatForm.addEventListener("submit", async (e) => {
   addMessage("user", userText);
   userInput.value = "";
   setLatestQuestion(userText);
-  setProductsDebug(0, "Waiting for reply. Parsed");
 
   updateKnownUserName(userText);
   messages.push({ role: "user", content: userText });
@@ -725,7 +361,6 @@ chatForm.addEventListener("submit", async (e) => {
     } else {
       addMessage("assistant", `Sorry, something went wrong. ${error.message}`);
     }
-    setProductsDebug(0, "Reply failed. Parsed");
   }
 
   userInput.focus();
