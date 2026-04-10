@@ -101,10 +101,18 @@ function renderDiscoverSuggestedProducts(products) {
   const mergedProducts = latestSuggestedProducts.slice();
 
   for (let i = 0; i < linkedProducts.length; i += 1) {
-    const incoming = linkedProducts[i];
+    const incoming = {
+      name: cleanSuggestedProductName(linkedProducts[i].name),
+      url: linkedProducts[i].url,
+    };
+
+    if (!incoming.name) {
+      continue;
+    }
+
     const alreadyExists = mergedProducts.some((existing) => {
       const sameUrl = (existing.url || "").trim().toLowerCase() === (incoming.url || "").trim().toLowerCase();
-      const sameName = (existing.name || "").trim().toLowerCase() === (incoming.name || "").trim().toLowerCase();
+      const sameName = cleanSuggestedProductName(existing.name || "") === incoming.name;
       return sameUrl || sameName;
     });
 
@@ -118,13 +126,19 @@ function renderDiscoverSuggestedProducts(products) {
 
   for (let i = 0; i < latestSuggestedProducts.length; i += 1) {
     const product = latestSuggestedProducts[i];
+    const cleanedName = cleanSuggestedProductName(product.name);
+
+    if (!cleanedName) {
+      continue;
+    }
+
     const item = document.createElement("li");
 
     const link = document.createElement("a");
     link.href = product.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = product.name;
+    link.textContent = cleanedName;
     item.appendChild(link);
 
     discoverSuggestedList.appendChild(item);
@@ -156,6 +170,21 @@ function cleanSuggestedProductName(rawName) {
 
   if (name.includes(" - ")) {
     name = name.split(" - ")[0].trim();
+  }
+
+  if (name.includes(": ")) {
+    const parts = name.split(": ");
+    const tail = parts.slice(1).join(": ");
+    if (/\b(although|this|it|which|that|helps?|provides?|leaves?)\b/i.test(tail) || tail.length > 28) {
+      name = parts[0].trim();
+    }
+  }
+
+  if (name.includes(". ")) {
+    const firstSentence = name.split(". ")[0].trim();
+    if (firstSentence.length >= 8) {
+      name = firstSentence;
+    }
   }
 
   if (name.includes(" — ")) {
