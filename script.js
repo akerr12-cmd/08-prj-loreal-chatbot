@@ -290,19 +290,20 @@ function parseSuggestedProducts(text) {
   };
 }
 function addAssistantResponse(payload) {
+  const isStructuredPayload = payload && typeof payload === "object" && !Array.isArray(payload);
   const assistantText = typeof payload === "string"
     ? payload
-    : payload && typeof payload.content === "string"
+    : isStructuredPayload && typeof payload.content === "string"
       ? payload.content
       : "";
 
-  const structuredProducts = payload && Array.isArray(payload.products)
+  const structuredProducts = isStructuredPayload && Array.isArray(payload.products)
     ? payload.products.filter((product) => product && product.name && product.url)
     : [];
 
-  const parsedResponse = structuredProducts.length
+  const parsedResponse = isStructuredPayload
     ? {
-        displayText: assistantText.trim(),
+        displayText: (assistantText || "").trim(),
         products: structuredProducts,
       }
     : parseSuggestedProducts(assistantText);
@@ -402,7 +403,7 @@ function loadConversationState() {
 
         messages.push({ role: msg.role, content: msg.content });
         if (msg.role === "assistant") {
-          addAssistantResponse(msg.content, false);
+          addAssistantResponse(msg.content);
         } else {
           addMessage(msg.role, msg.content);
         }

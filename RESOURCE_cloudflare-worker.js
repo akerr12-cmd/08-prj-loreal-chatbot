@@ -76,6 +76,8 @@ export default {
           additional_instructions: [
             'Treat each new user message as a continuation of the same conversation unless the user clearly starts a new topic.',
             'If the user is answering your previous question, do not restart; continue from the prior turn naturally.',
+            'Only answer questions related to L\'Oreal products, ingredients, routines, beauty concerns, or usage guidance.',
+            'If the user asks an unrelated question, set answer to exactly: "I can only help with L\'Oreal products, ingredients, and beauty routines." and return an empty products array.',
             'Return a valid JSON object only with this exact shape: {"answer":"string","products":[{"name":"string","url":"https://..."}]}.',
             'The answer field must contain the conversational reply for chat.',
             'The products field must contain up to 3 real L\'Oreal product links. If none, return an empty array.'
@@ -174,6 +176,148 @@ export default {
       return cleaned;
     }
 
+    function isLikelyLorealUrl(url) {
+      if (!url) {
+        return false;
+      }
+
+      try {
+        const parsed = new URL(url);
+        return parsed.hostname.toLowerCase().includes('loreal');
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function cleanProductName(rawName) {
+      let name = String(rawName || '').trim();
+
+      name = name
+        .replace(/\*\*/g, '')
+        .replace(/^['"`\-\s]+|['"`\s]+$/g, '')
+        .trim();
+
+      if (name.includes(' - ')) {
+        name = name.split(' - ')[0].trim();
+      }
+
+      if (name.includes(' — ')) {
+        name = name.split(' — ')[0].trim();
+      }
+
+      if (name.includes(' – ')) {
+        name = name.split(' – ')[0].trim();
+      }
+
+      if (name.includes(': ')) {
+        const parts = name.split(': ');
+        const tail = parts.slice(1).join(': ');
+        if (/\b(although|this|it|which|that|helps?|provides?|leaves?)\b/i.test(tail) || tail.length > 28) {
+          name = parts[0].trim();
+        }
+      }
+
+      return name.replace(/\s{2,}/g, ' ').trim();
+    }
+
+    function extractProductsFromText(text) {
+      const normalized = String(text || '').replace(/\r\n/g, '\n');
+      const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
+      const headingMatch = normalized.match(headingRegex);
+      const section = headingMatch ? headingMatch[1] : normalized;
+      const lines = section.split('\n');
+      const products = [];
+      const bulletRegex = /^(?:[\-•*]|\d+\.)\s+/;
+
+      for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i].trim();
+
+        if (!line && products.length > 0) {
+          break;
+        }
+
+        if (!line) {
+          continue;
+        }
+
+        if (products.length > 0 && !bulletRegex.test(line)) {
+          break;
+        }
+
+        const markdownLinkMatch = line.match(/^(?:[\-•*]|\d+\.)\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+        const pipeMatch = line.match(/^(?:[\-•*]|\d+\.)\s+([^|]+?)\s*\|\s*(https?:\/\/\S+)$/);
+        const plainUrlMatch = line.match(/^(?:[\-•*]|\d+\.)\s+(.+?)\s+(https?:\/\/\S+)$/);
+
+        const rawName = markdownLinkMatch
+          ? markdownLinkMatch[1]
+          : pipeMatch
+            ? pipeMatch[1]
+            : plainUrlMatch
+              ? plainUrlMatch[1]
+              : '';
+
+        const rawUrl = markdownLinkMatch
+          ? markdownLinkMatch[2]
+          : pipeMatch
+            ? pipeMatch[2]
+            : plainUrlMatch
+              ? plainUrlMatch[2]
+              : '';
+
+        const url = String(rawUrl).replace(/[\])\].,;!?]+$/g, '').trim();
+        const name = cleanProductName(rawName);
+
+        if (!name || !url || !isLikelyLorealUrl(url)) {
+          continue;
+        }
+
+        products.push({ name, url });
+
+        if (products.length >= 3) {
+          break;
+        }
+      }
+
+      if (!products.length) {
+        const fallbackRegex = /(?:^|\n)(?:[\-•*]|\d+\.)\s+([^\n|]+?)\s*(?:\|\s*(https?:\/\/\S+)|\((https?:\/\/\S+)\)|\s+(https?:\/\/\S+))\s*$/gim;
+        let fallbackMatch;
+
+        while ((fallbackMatch = fallbackRegex.exec(normalized)) !== null) {
+          const name = cleanProductName(fallbackMatch[1]);
+          const url = String(fallbackMatch[2] || fallbackMatch[3] || fallbackMatch[4] || '').replace(/[\])\].,;!?]+$/g, '').trim();
+
+          if (!name || !url || !isLikelyLorealUrl(url)) {
+            continue;
+          }
+
+          products.push({ name, url });
+
+          if (products.length >= 3) {
+            break;
+          }
+        }
+      }
+
+      return normalizeProducts(products);
+    }
+
+    function stripSuggestedProductsBlock(text) {
+      const normalized = String(text || '').replace(/\r\n/g, '\n');
+      const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
+      const headingMatch = normalized.match(headingRegex);
+
+      if (headingMatch) {
+        const headingIndex = normalized.indexOf(headingMatch[0]);
+        return normalized.slice(0, headingIndex).trim();
+      }
+
+      return normalized
+        .split('\n')
+        .filter((line) => !/^(?:\s*(?:[\-•*]|\d+\.)\s+.*https?:\/\/\S+.*)$/i.test(line))
+        .join('\n')
+        .trim();
+    }
+
     function extractStructuredPayload(text) {
       const raw = String(text || '').trim();
 
@@ -199,16 +343,20 @@ export default {
           const parsed = JSON.parse(candidates[i]);
           const answer = typeof parsed.answer === 'string' ? parsed.answer.trim() : '';
           const products = normalizeProducts(parsed.products);
+          const fallbackProducts = products.length ? products : extractProductsFromText(answer || raw);
+          const cleanAnswer = stripSuggestedProductsBlock(answer || raw);
 
-          if (answer || products.length) {
-            return { answer: answer || raw, products };
+          if (cleanAnswer || fallbackProducts.length) {
+            return { answer: cleanAnswer || answer || raw, products: fallbackProducts };
           }
         } catch (error) {
           // Keep trying other candidate JSON snippets.
         }
       }
 
-      return { answer: raw, products: [] };
+      const fallbackProducts = extractProductsFromText(raw);
+      const cleanAnswer = stripSuggestedProductsBlock(raw);
+      return { answer: cleanAnswer || raw, products: fallbackProducts };
     }
 
     let activeThreadId = threadId;
