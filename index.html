@@ -18,8 +18,10 @@
     <!-- Header -->
     <header class="site-header">
       <img class="site-logo" src="img/loreal-logo.png" alt="L'Oréal logo">
-      <h1 class="site-title">L’Oréal Beauty Advisor</h1>
+      <p class="site-title">L’Oréal Beauty Advisor</p>
+      <h1 class="site-routine-line">Discover Your Signature Routine</h1>
       <p class="site-subtitle">Luxury beauty guidance, tailored to you</p>
+      <p class="site-powered-line">Powered by L’Oréal beauty expertise and personalized product matching.</p>
       <section class="category-section" aria-label="Explore by category">
         <div class="molecular-divider" aria-hidden="true">
           <span class="node"></span><span class="line"></span>
@@ -33,19 +35,15 @@
 
         <div class="categories">
           <div class="category">
-            <img src="img/molecule.svg" alt="Skin icon" class="icon">
             <h3>Skin</h3>
           </div>
           <div class="category">
-            <img src="img/hair.svg" alt="Hair icon" class="icon">
             <h3>Hair</h3>
           </div>
           <div class="category">
-            <img src="img/makeup.svg" alt="Makeup icon" class="icon">
             <h3>Makeup</h3>
           </div>
           <div class="category">
-            <img src="img/fragrance.svg" alt="Fragrance icon" class="icon">
             <h3>Fragrance</h3>
           </div>
         </div>
@@ -55,29 +53,31 @@
     <!-- Split Canvas Layout -->
     <main class="split-layout">
 
-      <!-- Left Discover Panel -->
-      <section class="discover-panel">
-        <div class="discover-box">
-          <h2 class="hero-headline">Discover Your Signature Routine</h2>
-          <p class="hero-text hero-text--desktop">
-            Powered by L’Oréal beauty expertise and personalized product matching.
-          </p>
-          <p class="hero-text hero-text--mobile">
-            Personalized beauty advice for products, steps, and routines.
-          </p>
-        </div>
-      </section>
-
       <!-- Right Chat Panel -->
       <section class="chatbox glass-panel">
         <header class="chat-panel-header">
-          <h2 class="chat-panel-title">Beauty Chat</h2>
-          <p class="chat-panel-note">Ask about L'Oréal products, ingredients, or routines.</p>
+          <div class="chat-panel-header-row">
+            <div>
+              <h2 class="chat-panel-title">Beauty Chat</h2>
+              <p class="chat-panel-note">Ask about L'Oréal products, ingredients, or routines.</p>
+            </div>
+            <button type="button" id="downloadBtn" class="download-icon-btn" aria-label="Download chat" title="Download chat">
+              ⤓
+            </button>
+          </div>
         </header>
 
         <p id="latestQuestion" class="latest-question" hidden></p>
 
         <div id="chatWindow" class="chat-window">
+          <div id="quickStartPanel" class="quick-start-panel">
+            <p class="quick-start-title">Quick Start</p>
+            <div class="quick-start-chips" aria-label="Quick start prompts">
+              <button type="button" class="quick-start-chip" data-quick-start="Find my foundation shade">Find my foundation shade</button>
+              <button type="button" class="quick-start-chip" data-quick-start="Build a nighttime routine">Build a nighttime routine</button>
+              <button type="button" class="quick-start-chip" data-quick-start="Recommend a hair repair routine">Recommend a hair repair routine</button>
+            </div>
+          </div>
           <div id="chatMessages" class="chat-messages"></div>
         </div>
 
@@ -96,7 +96,6 @@
           </button>
           <div class="chat-actions">
             <button type="button" id="clearBtn" class="clear-btn">New Chat</button>
-            <button type="button" id="downloadBtn" class="download-btn">Download Chat</button>
           </div>
         </form>
       </section>

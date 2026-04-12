@@ -5,6 +5,9 @@ const chatMessages = document.getElementById("chatMessages");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const latestQuestion = document.getElementById("latestQuestion");
+const categoryElements = document.querySelectorAll(".category");
+const quickStartPanel = document.getElementById("quickStartPanel");
+const quickStartButtons = document.querySelectorAll("[data-quick-start]");
 
 const desktopPlaceholder = "Ask me about products or routines…";
 const mobilePlaceholder = "Ask about products or routines";
@@ -20,6 +23,38 @@ const userProfile = {
 let assistantThreadId = localStorage.getItem(THREAD_STORAGE_KEY) || "";
 const messages = [
 ];
+
+function updateQuickStartState(forceHide = false) {
+  if (!quickStartPanel) {
+    return;
+  }
+
+  const hasUserMessage = messages.some((message) => message.role === "user");
+  quickStartPanel.hidden = forceHide || hasUserMessage;
+}
+
+// Category click handlers for interactive navigation
+categoryElements.forEach((category) => {
+  category.addEventListener("click", () => {
+    // Remove active class from all categories
+    categoryElements.forEach((cat) => cat.classList.remove("active"));
+    // Add active class to clicked category
+    category.classList.add("active");
+    
+    // Get category name
+    const categoryName = category.querySelector("h3").textContent.trim();
+    
+    // Set input focus and suggestion text
+    userInput.focus();
+    userInput.placeholder = `Ask about ${categoryName}…`;
+    
+    // Scroll chat into view
+    const chatWindow = document.getElementById("chatWindow");
+    if (chatWindow) {
+      chatWindow.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+});
 
 function updatePlaceholderText() {
   if (window.innerWidth <= 399) {
@@ -45,6 +80,7 @@ function addMessage(role, text) {
 
   chatMessages.appendChild(msgElement);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  updateQuickStartState(role === "user");
 }
 
 function saveAssistantThreadId(threadId) {
@@ -227,6 +263,9 @@ function downloadChatHistory() {
 }
 
 function clearConversation() {
+  // Reset category selection
+  categoryElements.forEach((cat) => cat.classList.remove("active"));
+  
   userProfile.name = "";
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(THREAD_STORAGE_KEY);
@@ -300,6 +339,8 @@ if (!hasLoadedHistory) {
   saveConversationState();
 }
 
+updateQuickStartState();
+
 setLatestQuestion(getLastUserQuestion());
 
 updatePlaceholderText();
@@ -320,6 +361,20 @@ clearBtn.addEventListener("click", () => {
 
 downloadBtn.addEventListener("click", () => {
   downloadChatHistory();
+});
+
+quickStartButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const quickStartPrompt = button.getAttribute("data-quick-start");
+
+    if (!quickStartPrompt) {
+      return;
+    }
+
+    userInput.value = quickStartPrompt;
+    userInput.focus();
+    chatForm.requestSubmit();
+  });
 });
 
 /* Handle form submit */
