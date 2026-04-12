@@ -154,8 +154,9 @@ function parseInlineProductMentions(text) {
   const normalizedText = String(text || "").replace(/\r\n/g, "\n");
   const matches = [];
   const patterns = [
-    /(?:recommend|suggest|try)\s+([A-Z][A-Za-z0-9'\-\s]{3,80})/g,
+    /(?:recommend|suggest|try|use)\s+(?:the\s+|a\s+|an\s+|using\s+)?([A-Z][A-Za-z0-9'&\-\s]{3,80})/g,
     /([A-Z][A-Za-z0-9'\-\s]{3,80})\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)/g,
+    /([A-Z][A-Za-z0-9'&\-]*(?:\s+[A-Z][A-Za-z0-9'&\-]*){0,6}\s+(?:Shampoo|Conditioner|Serum|Cream|Moisturizer|Cleanser|Mask|Treatment|Oil|Gel))/g,
   ];
 
   for (let i = 0; i < patterns.length; i += 1) {
@@ -181,12 +182,19 @@ function renderDiscoverSuggestedProducts(products) {
   }
 
   const safeProducts = normalizeSuggestedProducts(products);
-  discoverSuggestedList.innerHTML = "";
 
   if (!safeProducts.length) {
-    setDiscoverSuggestionMessage("No products suggested yet. Ask a product question.");
+    const hasExistingItems = discoverSuggestedList.children.length > 0
+      && !discoverSuggestedList.querySelector(".discover-suggested-empty");
+
+    if (!hasExistingItems) {
+      setDiscoverSuggestionMessage("No products suggested yet. Ask a product question.");
+    }
+
     return;
   }
+
+  discoverSuggestedList.innerHTML = "";
 
   for (let i = 0; i < safeProducts.length; i += 1) {
     const product = safeProducts[i];

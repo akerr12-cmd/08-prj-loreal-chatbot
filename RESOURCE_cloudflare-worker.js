@@ -318,8 +318,9 @@ export default {
       const normalized = String(text || '').replace(/\r\n/g, '\n');
       const candidates = [];
       const patterns = [
-        /(?:recommend|suggest|try)\s+([A-Z][A-Za-z0-9'\-\s]{3,80})/g,
+        /(?:recommend|suggest|try|use)\s+(?:the\s+|a\s+|an\s+|using\s+)?([A-Z][A-Za-z0-9'&\-\s]{3,80})/g,
         /([A-Z][A-Za-z0-9'\-\s]{3,80})\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)/g,
+        /([A-Z][A-Za-z0-9'&\-]*(?:\s+[A-Z][A-Za-z0-9'&\-]*){0,6}\s+(?:Shampoo|Conditioner|Serum|Cream|Moisturizer|Cleanser|Mask|Treatment|Oil|Gel))/g,
       ];
 
       for (let i = 0; i < patterns.length; i += 1) {
