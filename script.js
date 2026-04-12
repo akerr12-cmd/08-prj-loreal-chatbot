@@ -1,6 +1,7 @@
 /* DOM elements */
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
+const chatWindow = document.getElementById("chatWindow");
 const chatMessages = document.getElementById("chatMessages");
 const clearBtn = document.getElementById("clearBtn");
 const downloadBtn = document.getElementById("downloadBtn");
@@ -145,6 +146,19 @@ function updatePlaceholderText() {
   userInput.placeholder = desktopPlaceholder;
 }
 
+function scrollChatToLatest() {
+  if (!chatWindow) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    chatWindow.scrollTo({
+      top: chatWindow.scrollHeight,
+      behavior: "smooth",
+    });
+  });
+}
+
 
 function addMessage(role, text) {
   const msgElement = document.createElement("div");
@@ -159,7 +173,7 @@ function addMessage(role, text) {
   }
 
   chatMessages.appendChild(msgElement);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  scrollChatToLatest();
   updateQuickStartState(role === "user");
 }
 
