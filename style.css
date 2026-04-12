@@ -346,60 +346,6 @@ input {
   display: block;
 }
 
-.discover-suggested {
-  margin-top: 0.8rem;
-  padding: 1rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background:
-    radial-gradient(circle at top right, rgba(227, 165, 53, 0.18) 0%, rgba(227, 165, 53, 0) 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 247, 247, 0.96) 100%);
-}
-
-.discover-suggested-title {
-  margin: 0;
-  display: inline-block;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
-  background: var(--brand-black);
-  color: var(--brand-white);
-  font-family: var(--font-heading);
-  font-weight: var(--weight-bold);
-  font-size: 0.78rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.discover-suggested-list {
-  margin: 0.7rem 0 0;
-  padding-left: 1rem;
-  display: grid;
-  gap: 0.35rem;
-  color: var(--brand-muted);
-  font-size: 0.92rem;
-  line-height: 1.45;
-  font-family: var(--font-body);
-}
-
-.discover-suggested-list a {
-  color: var(--brand-black);
-  text-decoration-color: rgba(0, 0, 0, 0.28);
-  text-underline-offset: 0.12em;
-}
-
-.discover-suggested-list a:hover {
-  color: #7a5714;
-  text-decoration-color: #7a5714;
-}
-
-.discover-suggested-empty {
-  list-style: none;
-  margin-left: -1rem;
-  font-style: italic;
-  font-size: 0.85rem;
-  color: var(--brand-muted);
-}
-
 .chatbox {
   order: 2;
   position: relative;
@@ -749,28 +695,6 @@ input {
 
   .hero-text--mobile {
     display: block;
-  }
-
-  .discover-suggested {
-    margin-top: 0.45rem;
-    padding: 0.52rem 0.62rem 0.58rem;
-    border-radius: 0.72rem;
-  }
-
-  .discover-suggested-title {
-    padding: 0.18rem 0.5rem;
-    font-size: 0.64rem;
-    letter-spacing: 0.08em;
-  }
-
-  .discover-suggested-list {
-    margin-top: 0.5rem;
-    font-size: 0.82rem;
-    line-height: 1.35;
-  }
-
-  .discover-suggested-empty {
-    font-size: 0.74rem;
   }
 
   .chatbox {

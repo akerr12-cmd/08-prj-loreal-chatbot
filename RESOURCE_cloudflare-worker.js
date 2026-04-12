@@ -200,7 +200,16 @@ export default {
 
       name = name
         .replace(/\*\*/g, '')
+        .replace(/^(?:i\s+)?(?:recommend|suggest)\s+(?:the\s+|a\s+|an\s+)?/i, '')
+        .replace(/^(?:you\s+(?:can|could|should)\s+)?(?:try|use)\s+(?:the\s+|a\s+|an\s+)?/i, '')
         .replace(/^['"`\-\s]+|['"`\s]+$/g, '')
+        .trim();
+
+      name = name
+        .replace(/\s+(?:for|because|which|that|since|to\s+help|to\s+reduce|to\s+target)\b[\s\S]*$/i, '')
+        .replace(/\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)[\s\S]*$/i, '')
+        .split(/[.!?]/)[0]
+        .split(',')[0]
         .trim();
 
       if (name.includes(' - ')) {
@@ -318,8 +327,8 @@ export default {
       const normalized = String(text || '').replace(/\r\n/g, '\n');
       const candidates = [];
       const patterns = [
-        /(?:recommend|suggest|try|use)\s+(?:the\s+|a\s+|an\s+|using\s+)?([A-Z][A-Za-z0-9'&\-\s]{3,80})/g,
-        /([A-Z][A-Za-z0-9'\-\s]{3,80})\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)/g,
+        /(?:recommend|suggest|try|use)\s+(?:the\s+|a\s+|an\s+|using\s+)?([A-Z][A-Za-z0-9'&\-]*(?:\s+[A-Z][A-Za-z0-9'&\-]*){0,8}(?:\s+(?:Shampoo|Conditioner|Serum|Cream|Moisturizer|Cleanser|Mask|Treatment|Oil|Gel))?)/g,
+        /([A-Z][A-Za-z0-9'&\-]*(?:\s+[A-Z][A-Za-z0-9'&\-]*){0,8}(?:\s+(?:Shampoo|Conditioner|Serum|Cream|Moisturizer|Cleanser|Mask|Treatment|Oil|Gel)))\s+(?:is|are)\s+(?:a\s+)?(?:great|good|helpful|effective)\s+(?:option|choice)/g,
         /([A-Z][A-Za-z0-9'&\-]*(?:\s+[A-Z][A-Za-z0-9'&\-]*){0,6}\s+(?:Shampoo|Conditioner|Serum|Cream|Moisturizer|Cleanser|Mask|Treatment|Oil|Gel))/g,
       ];
 
