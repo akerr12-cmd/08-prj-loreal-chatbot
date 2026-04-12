@@ -836,16 +836,16 @@ input {
   }
 
   .site-subtitle {
-    font-size: 0.9rem;
-    line-height: 1.55;
-    font-weight: 400;
+    font-size: 0.82rem;
+    line-height: 1.42;
+    font-weight: var(--weight-light);
   }
 
   .site-powered-line {
     margin-top: 0.25rem;
-    font-size: 0.84rem;
-    line-height: 1.45;
-    font-weight: 400;
+    font-size: 0.76rem;
+    line-height: 1.34;
+    font-weight: var(--weight-light);
     max-width: 24rem;
   }
 
@@ -1002,6 +1002,18 @@ input {
     letter-spacing: 1.2px;
     line-height: 1.05;
     margin-bottom: 0;
+  }
+
+  .site-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.36;
+  }
+
+  .site-powered-line {
+    margin-top: 0.2rem;
+    font-size: 0.7rem;
+    line-height: 1.28;
+    max-width: 20rem;
   }
 }
 
