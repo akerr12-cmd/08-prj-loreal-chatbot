@@ -37,6 +37,37 @@ const quickStartPromptPool = [
   "Create a beginner makeup routine",
 ];
 
+const quickStartPromptPoolByCategory = {
+  skin: [
+    "Find my foundation shade",
+    "Build a routine for sensitive skin",
+    "How do I layer skincare products?",
+    "Recommend products for dry skin",
+    "Help with oily skin and large pores",
+  ],
+  hair: [
+    "Recommend a hair repair routine",
+    "Best routine for color-treated hair",
+    "How do I reduce frizz and breakage?",
+    "Recommend products for dry hair",
+    "Build a scalp care routine",
+  ],
+  makeup: [
+    "Find my foundation shade",
+    "Create a beginner makeup routine",
+    "Recommend a natural everyday makeup look",
+    "How do I make makeup last all day?",
+    "Suggest a soft glam routine",
+  ],
+  fragrance: [
+    "Recommend a fragrance for daytime",
+    "Suggest a fragrance for evening",
+    "Help me choose a floral scent",
+    "Find a signature scent profile",
+    "Recommend a fresh, clean fragrance",
+  ],
+};
+
 function getRandomPrompts(pool, count) {
   const shuffled = [...pool];
 
@@ -50,12 +81,17 @@ function getRandomPrompts(pool, count) {
   return shuffled.slice(0, count);
 }
 
-function randomizeQuickStartOptions() {
+function randomizeQuickStartOptions(categoryName = "") {
   if (!quickStartButtons.length) {
     return;
   }
 
-  const randomizedPrompts = getRandomPrompts(quickStartPromptPool, quickStartButtons.length);
+  const categoryKey = String(categoryName || "").trim().toLowerCase();
+  const categoryPool = quickStartPromptPoolByCategory[categoryKey];
+  const poolToUse = Array.isArray(categoryPool) && categoryPool.length > 0
+    ? categoryPool
+    : quickStartPromptPool;
+  const randomizedPrompts = getRandomPrompts(poolToUse, quickStartButtons.length);
 
   quickStartButtons.forEach((button, index) => {
     const prompt = randomizedPrompts[index];
@@ -88,16 +124,15 @@ categoryElements.forEach((category) => {
     
     // Get category name
     const categoryName = category.querySelector("h3").textContent.trim();
+
+    // Refresh quick-start options based on category selection
+    randomizeQuickStartOptions(categoryName);
     
     // Set input focus and suggestion text
-    userInput.focus();
+    userInput.focus({ preventScroll: true });
     userInput.placeholder = `Ask about ${categoryName}…`;
-    
-    // Scroll chat into view
-    const chatWindow = document.getElementById("chatWindow");
-    if (chatWindow) {
-      chatWindow.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+
+    // Keep the current viewport position stable when selecting categories.
   });
 });
 
