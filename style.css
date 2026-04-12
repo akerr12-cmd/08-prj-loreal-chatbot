@@ -11,8 +11,10 @@
   --brand-gold: #e3a535;
   --brand-ink: #1a1a1a;
   --brand-muted: #5d5d5d;
-  --font-body: "helvetica-lt-pro", "arial", sans-serif;
-  --font-heading: "montserrat", "helvetica-lt-pro", sans-serif;
+  --font-heading: "linotype-didot", "didot", "times new roman", serif;
+  --font-ui: "montserrat", "helvetica-lt-pro", "arial", sans-serif;
+  --font-body: "montserrat", "helvetica-lt-pro", "arial", sans-serif;
+  --weight-light: 300;
   --weight-regular: 400;
   --weight-bold: 700;
 }
@@ -203,7 +205,7 @@ input {
   font-size: 1rem;
   line-height: 1.65;
   font-family: var(--font-body);
-  font-weight: 300;
+  font-weight: var(--weight-light);
   color: var(--brand-muted);
 }
 
@@ -223,7 +225,7 @@ input {
   font-size: 0.98rem;
   line-height: 1.6;
   font-family: var(--font-body);
-  font-weight: 300;
+  font-weight: var(--weight-light);
   color: var(--brand-muted);
 }
 
@@ -313,7 +315,7 @@ input {
   text-transform: uppercase;
   color: #555;
   margin-bottom: 1rem;
-  font-family: var(--font-heading);
+  font-family: var(--font-ui);
 }
 
 .categories {
@@ -348,7 +350,7 @@ input {
   font-size: 0.95rem;
   color: var(--brand-black);
   margin-bottom: 0;
-  font-family: var(--font-heading);
+  font-family: var(--font-ui);
   letter-spacing: 2px;
   text-transform: uppercase;
   line-height: 1.1;
@@ -498,6 +500,7 @@ input {
   border: 1px solid rgba(227, 165, 53, 0.2);
   background: rgba(255, 255, 255, 0.7);
   color: var(--brand-black);
+  font-family: var(--font-ui);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
@@ -532,6 +535,7 @@ input {
   font-weight: var(--weight-bold);
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  font-family: var(--font-ui);
   color: var(--brand-muted);
 }
 
@@ -549,6 +553,7 @@ input {
   color: var(--brand-black);
   font-size: 0.88rem;
   line-height: 1.2;
+  font-family: var(--font-ui);
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
@@ -683,7 +688,7 @@ input {
   background: rgba(12, 12, 12, 0.96);
   color: var(--brand-white);
   font-family: var(--font-body);
-  font-weight: var(--weight-regular);
+  font-weight: var(--weight-light);
   min-height: 3rem;
   max-height: 8rem;
   resize: vertical;
@@ -705,6 +710,7 @@ input {
   border-radius: 0.75rem;
   background: linear-gradient(135deg, var(--brand-black) 0%, #1b1b1b 100%);
   color: #fff;
+  font-family: var(--font-ui);
   font-weight: var(--weight-bold);
   display: flex;
   align-items: center;
@@ -749,7 +755,7 @@ input {
   border: 1px solid rgba(227, 165, 53, 0.18);
   background: rgba(18, 18, 18, 0.95);
   color: var(--brand-white);
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   font-weight: var(--weight-bold);
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
@@ -1133,7 +1139,7 @@ input {
   .site-powered-line {
     font-size: 1.03rem;
     line-height: 1.65;
-    font-weight: 300;
+    font-weight: var(--weight-light);
     max-width: 44rem;
   }
 
