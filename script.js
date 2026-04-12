@@ -24,6 +24,51 @@ let assistantThreadId = localStorage.getItem(THREAD_STORAGE_KEY) || "";
 const messages = [
 ];
 
+const quickStartPromptPool = [
+  "Find my foundation shade",
+  "Build a nighttime routine",
+  "Recommend a hair repair routine",
+  "Suggest a simple morning skincare routine",
+  "Help with oily skin and large pores",
+  "Recommend products for dry hair",
+  "How do I layer skincare products?",
+  "Find a routine for sensitive skin",
+  "Recommend a fragrance for daytime",
+  "Create a beginner makeup routine",
+];
+
+function getRandomPrompts(pool, count) {
+  const shuffled = [...pool];
+
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const randomIndex = Math.floor(Math.random() * (i + 1));
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[randomIndex];
+    shuffled[randomIndex] = temp;
+  }
+
+  return shuffled.slice(0, count);
+}
+
+function randomizeQuickStartOptions() {
+  if (!quickStartButtons.length) {
+    return;
+  }
+
+  const randomizedPrompts = getRandomPrompts(quickStartPromptPool, quickStartButtons.length);
+
+  quickStartButtons.forEach((button, index) => {
+    const prompt = randomizedPrompts[index];
+
+    if (!prompt) {
+      return;
+    }
+
+    button.textContent = prompt;
+    button.setAttribute("data-quick-start", prompt);
+  });
+}
+
 function updateQuickStartState(forceHide = false) {
   if (!quickStartPanel) {
     return;
@@ -332,6 +377,9 @@ async function getAssistantReply(userText) {
 
 // Restore existing chat history when available.
 const hasLoadedHistory = loadConversationState();
+
+// Show a different set of quick-start ideas on each load.
+randomizeQuickStartOptions();
 
 // If no prior chat exists, show the default welcome message.
 if (!hasLoadedHistory) {
