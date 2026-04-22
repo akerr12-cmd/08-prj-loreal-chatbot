@@ -88,15 +88,6 @@ export default {
         headers: openAiHeaders,
         body: JSON.stringify({
           assistant_id: assistantId,
-          additional_instructions: [
-            'Treat each new user message as a continuation of the same conversation unless the user clearly starts a new topic.',
-            'If the user is answering your previous question, do not restart; continue from the prior turn naturally.',
-            'Only answer questions related to L\'Oreal products, ingredients, routines, beauty concerns, or usage guidance.',
-            'If the user asks an unrelated question, set answer to exactly: "I can only help with L\'Oreal products, ingredients, and beauty routines."',
-            'Return a valid JSON object with this shape: {"answer":"string","products":[{"name":"string"}]}.',
-            'The answer field must contain the conversational reply for chat.',
-            'When recommending products, include them in products as up to 3 L\'Oreal product names. Do not include links or URLs. If no product is recommended, return an empty products array.'
-          ].join(' '),
         }),
       });
 
