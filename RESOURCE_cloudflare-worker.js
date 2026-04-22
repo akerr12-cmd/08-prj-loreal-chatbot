@@ -1,5 +1,6 @@
 export default {
   async fetch(request, env) {
+    // 1. Setup CORS headers to allow cross-origin requests from the frontend
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -7,18 +8,22 @@ export default {
       'Content-Type': 'application/json'
     };
 
+    // 2. Handle preflight OPTIONS requests for CORS (browser security check)
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // 3. Reject any requests that are not POST
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: { message: 'Method not allowed. Use POST for chat requests.' } }), { status: 405, headers: corsHeaders });
     }
 
+    // 4. Retrieve environment variables (API Keys and IDs configured in Cloudflare)
     const apiKey = env.OPENAI_API_KEY;
     const assistantId = env.ASSISTANT_ID;
     const apiBase = 'https://api.openai.com/v1';
 
+    // 5. Parse the incoming JSON request body
     let requestBody;
     try {
       requestBody = await request.json();
@@ -26,27 +31,35 @@ export default {
       return new Response(JSON.stringify({ error: { message: 'Invalid or empty JSON body. Send a JSON object with a message field.' } }), { status: 400, headers: corsHeaders });
     }
 
+    // 6. Validate that the body is an object
     if (!requestBody || typeof requestBody !== 'object') {
       return new Response(JSON.stringify({ error: { message: 'Invalid request body. Expected a JSON object.' } }), { status: 400, headers: corsHeaders });
     }
 
+    // 7. Extract the user message and optional threadId (for continuing conversations)
     const userMessage = typeof requestBody.message === 'string' ? requestBody.message.trim() : '';
     const threadId = typeof requestBody.threadId === 'string' ? requestBody.threadId : '';
 
+    // 8. Verify that necessary environment variables are present
     if (!apiKey || !assistantId) {
       return new Response(JSON.stringify({ error: { message: 'Missing OPENAI_API_KEY or ASSISTANT_ID in Cloudflare Worker secrets.' } }), { status: 500, headers: corsHeaders });
     }
 
+    // 9. Ensure the user actually sent a message
     if (!userMessage) {
       return new Response(JSON.stringify({ error: { message: 'Missing user message.' } }), { status: 400, headers: corsHeaders });
     }
 
+    // 10. Setup headers for OpenAI API requests
     const openAiHeaders = {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'OpenAI-Beta': 'assistants=v2'
     };
 
+    // --- Helper Functions for OpenAI API ---
+
+    // Creates a new conversation thread with OpenAI
     async function createThread() {
       const response = await fetch(`${apiBase}/threads`, {
         method: 'POST',
@@ -63,6 +76,7 @@ export default {
       return data.id;
     }
 
+    // Adds the user's message to the specified thread
     async function addMessage(activeThreadId) {
       const response = await fetch(`${apiBase}/threads/${activeThreadId}/messages`, {
         method: 'POST',
@@ -82,6 +96,7 @@ export default {
       return data;
     }
 
+    // Starts a "run" which tells the Assistant to process the thread and generate a response
     async function createRun(activeThreadId) {
       const response = await fetch(`${apiBase}/threads/${activeThreadId}/runs`, {
         method: 'POST',
@@ -100,6 +115,7 @@ export default {
       return data.id;
     }
 
+    // Checks the status of an ongoing run (e.g., 'queued', 'in_progress', 'completed')
     async function getRun(activeThreadId, runId) {
       const response = await fetch(`${apiBase}/threads/${activeThreadId}/runs/${runId}`, {
         method: 'GET',
@@ -115,6 +131,7 @@ export default {
       return data;
     }
 
+    // Retrieves the final text response from the assistant once the run is complete
     async function getLatestAssistantMessage(activeThreadId, runId) {
       const response = await fetch(`${apiBase}/threads/${activeThreadId}/messages?limit=20`, {
         method: 'GET',
@@ -152,6 +169,9 @@ export default {
       return assistantText;
     }
 
+    // --- Helper Functions for Text Processing and Product Extraction ---
+
+    // Deduplicates product names and limits the final list to a maximum of 3
     function normalizeProducts(products) {
       if (!Array.isArray(products)) {
         return [];
@@ -186,6 +206,7 @@ export default {
       return cleaned;
     }
 
+    // Cleans up a product name by removing markdown, quotes, and conversational tails (e.g., "... which is great for")
     function cleanProductName(rawName) {
       let name = String(rawName || '').trim();
 
@@ -217,6 +238,7 @@ export default {
       return name.replace(/\s{2,}/g, ' ').trim();
     }
 
+    // Tries to extract a list of products from a structured "suggested products" section in the text
     function extractProductsFromText(text) {
       const normalized = String(text || '').replace(/\r\n/g, '\n');
       const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
@@ -305,6 +327,7 @@ export default {
       return normalizeProducts(products);
     }
 
+    // Fallback: Tries to extract product names from natural language sentences (e.g., "I recommend using [Product Name]")
     function extractInlineProductMentions(text) {
       const normalized = String(text || '').replace(/\r\n/g, '\n');
       const candidates = [];
@@ -331,6 +354,7 @@ export default {
       return normalizeProducts(candidates);
     }
 
+    // Removes the "suggested products" list from the main text so it's not repeated in the UI bubble
     function stripSuggestedProductsBlock(text) {
       const normalized = String(text || '').replace(/\r\n/g, '\n');
       const headingRegex = /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:suggested|recommended)\s+products?\s*:?\s*(?:\*\*)?\s*\n([\s\S]*)/i;
@@ -344,6 +368,7 @@ export default {
       return normalized.trim();
     }
 
+    // Main parsing function: tries to find JSON or falls back to regex to extract the chat answer and product list
     function extractStructuredPayload(text) {
       const raw = String(text || '').trim();
 
@@ -396,39 +421,61 @@ export default {
       return { answer: cleanAnswer || raw, products: inlineProducts };
     }
 
-    let activeThreadId = threadId;
+    // --- Main Execution Flow ---
+    try {
+      // 11. Determine if we are continuing an existing thread or starting a new one
+      let activeThreadId = threadId;
 
-    if (!activeThreadId) {
-      activeThreadId = await createThread();
-    }
-
-    await addMessage(activeThreadId);
-    const runId = await createRun(activeThreadId);
-
-    let runData = await getRun(activeThreadId, runId);
-    let attempts = 0;
-
-    while (runData.status === 'queued' || runData.status === 'in_progress') {
-      if (attempts >= 15) {
-        throw new Error('Assistant response timed out.');
+      if (!activeThreadId) {
+        activeThreadId = await createThread();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      runData = await getRun(activeThreadId, runId);
-      attempts += 1;
+      // 12. Add the user's message to the thread
+      await addMessage(activeThreadId);
+      
+      // 13. Trigger the assistant to start generating a response
+      const runId = await createRun(activeThreadId);
+
+      // 14. Poll the OpenAI API until the assistant finishes processing (status becomes 'completed')
+      let runData = await getRun(activeThreadId, runId);
+      let attempts = 0;
+
+      while (runData.status === 'queued' || runData.status === 'in_progress') {
+        // Timeout after 15 seconds to prevent the Worker from hanging indefinitely
+        if (attempts >= 15) {
+          throw new Error('Assistant response timed out.');
+        }
+
+        // Wait 1 second before checking the status again
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        runData = await getRun(activeThreadId, runId);
+        attempts += 1;
+      }
+
+      // If the run failed or was cancelled, throw an error
+      if (runData.status !== 'completed') {
+        throw new Error(`Assistant run ended with status: ${runData.status}`);
+      }
+
+      // 15. Retrieve the assistant's final response text
+      const assistantText = await getLatestAssistantMessage(activeThreadId, runId);
+      
+      // 16. Parse the text to separate the conversational answer from suggested products
+      const structured = extractStructuredPayload(assistantText);
+
+      // 17. Return the final structured response (threadId, content, products) to the frontend
+      return new Response(JSON.stringify({
+        threadId: activeThreadId,
+        content: structured.answer || assistantText,
+        products: structured.products,
+      }), { headers: corsHeaders });
+
+    } catch (error) {
+      // 18. Catch any errors during the OpenAI API calls (e.g., timeouts, failed requests)
+      // and return a graceful 500 error response with CORS headers so the frontend can handle it
+      return new Response(JSON.stringify({ 
+        error: { message: error.message || 'An internal error occurred while processing the request.' } 
+      }), { status: 500, headers: corsHeaders });
     }
-
-    if (runData.status !== 'completed') {
-      throw new Error(`Assistant run ended with status: ${runData.status}`);
-    }
-
-    const assistantText = await getLatestAssistantMessage(activeThreadId, runId);
-    const structured = extractStructuredPayload(assistantText);
-
-    return new Response(JSON.stringify({
-      threadId: activeThreadId,
-      content: structured.answer || assistantText,
-      products: structured.products,
-    }), { headers: corsHeaders });
   }
 };
